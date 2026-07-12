@@ -91,6 +91,8 @@ Implemented in `eval/src/retrieval/guard.py` (API + eval harness):
 
 Artifacts: `eval/results/failure_analysis_baseline.json` · `failure_analysis_guarded.json` · `failure_analysis_comparison.json`
 
+Full write-up (methodology, errors we hit, remaining gaps): **[eval/ADVERSARIAL_EVAL.md](eval/ADVERSARIAL_EVAL.md)**
+
 ## Layout
 
 | Path | Role |

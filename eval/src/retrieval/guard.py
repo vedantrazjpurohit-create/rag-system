@@ -19,6 +19,16 @@ class GuardConfig:
     reject_unseen_numerics: bool = True
 
 
+def guard_config_for_corpus(chunks: list[dict], base: GuardConfig) -> GuardConfig:
+    """Strict poison/OOD rules only when superseded docs are indexed."""
+    if not base.enabled:
+        return base
+    has_superseded = any(chunk.get("trust_tier") == "superseded" for chunk in chunks)
+    if has_superseded:
+        return base
+    return GuardConfig(enabled=False)
+
+
 def trust_tier_for_source(source: str) -> str:
     name = source.replace("\\", "/").lower()
     if any(token in name for token in ("poison", "misleading", "superseded")):
@@ -123,8 +133,11 @@ def wrap_guarded_search(
     router = router or AdaptiveQueryRouter()
     doc_trust = build_doc_trust_map(chunks)
     trusted_blob = build_trusted_corpus_blob(chunks)
+    effective_cfg = guard_config_for_corpus(chunks, cfg)
 
     def guarded(query: str, top_k: int) -> list[Any]:
+        if not effective_cfg.enabled:
+            return search(query, top_k)
         route = router.classify(query)
         raw_hits = search(query, max(top_k * 3, top_k))
         return apply_retrieval_guard(
@@ -134,7 +147,7 @@ def wrap_guarded_search(
             route=route,
             doc_trust=doc_trust,
             trusted_corpus_blob=trusted_blob,
-            cfg=cfg,
+            cfg=effective_cfg,
         )[:top_k]
 
     return guarded

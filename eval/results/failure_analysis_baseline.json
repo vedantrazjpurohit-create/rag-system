@@ -188,7 +188,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 22.5
+        "latency_ms": 18.9
       },
       {
         "id": "ood_stocks",
@@ -214,7 +214,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 11.6
+        "latency_ms": 15.3
       },
       {
         "id": "ood_llm_tune",
@@ -240,7 +240,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 12.4
+        "latency_ms": 15.5
       },
       {
         "id": "gibberish",
@@ -266,7 +266,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 14.0
+        "latency_ms": 16.5
       },
       {
         "id": "false_premise_2048",
@@ -292,7 +292,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 11.4
+        "latency_ms": 15.0
       },
       {
         "id": "false_premise_512_baseline",
@@ -319,7 +319,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 15.7
+        "latency_ms": 16.3
       },
       {
         "id": "ambiguous_improved",
@@ -347,7 +347,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 14.8
+        "latency_ms": 12.5
       },
       {
         "id": "ambiguous_chunks",
@@ -377,7 +377,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 19.7
+        "latency_ms": 14.5
       },
       {
         "id": "minimal_overlap",
@@ -406,7 +406,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 14.1
+        "latency_ms": 13.1
       },
       {
         "id": "multi_hop_compare",
@@ -434,7 +434,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 15.5
+        "latency_ms": 16.8
       },
       {
         "id": "multi_hop_policy_lie",
@@ -461,7 +461,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 13.0
+        "latency_ms": 14.7
       },
       {
         "id": "paraphrase_no_lexical_overlap",
@@ -488,7 +488,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 16.3
+        "latency_ms": 15.8
       },
       {
         "id": "typo_brutal",
@@ -517,7 +517,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 16.3
+        "latency_ms": 15.3
       },
       {
         "id": "poison_production_final",
@@ -548,7 +548,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.5
+        "latency_ms": 16.5
       },
       {
         "id": "poison_abandoned_256",
@@ -578,7 +578,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 11.3
+        "latency_ms": 12.2
       },
       {
         "id": "poison_hybrid_mandatory",
@@ -606,7 +606,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 10.4
+        "latency_ms": 9.7
       },
       {
         "id": "exact_recall_at5",
@@ -635,7 +635,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 10.3
+        "latency_ms": 9.7
       },
       {
         "id": "negation_never_tested",
@@ -663,7 +663,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 11.2
+        "latency_ms": 8.8
       },
       {
         "id": "cross_doc_overlap",
@@ -690,7 +690,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 10.2
+        "latency_ms": 9.1
       },
       {
         "id": "distractor_similar_topic",
@@ -719,7 +719,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 7.7
+        "latency_ms": 10.0
       },
       {
         "id": "contradiction_check",
@@ -746,7 +746,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 10.6
+        "latency_ms": 9.8
       },
       {
         "id": "empty_index_simulation",
@@ -772,10 +772,10 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 13.6
+        "latency_ms": 8.9
       }
     ],
-    "runtime.total_s": 5.55
+    "runtime.total_s": 5.29
   },
   "bm25": {
     "config": {
@@ -966,7 +966,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "ood_stocks",
@@ -1187,7 +1187,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "multi_hop_policy_lie",
@@ -1216,7 +1216,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "paraphrase_no_lexical_overlap",
@@ -1437,7 +1437,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.667
         },
-        "latency_ms": 0.0
+        "latency_ms": 0.8
       },
       {
         "id": "distractor_similar_topic",
@@ -1711,7 +1711,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 4362.9
+        "latency_ms": 4515.2
       },
       {
         "id": "ood_stocks",
@@ -1737,7 +1737,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.7
+        "latency_ms": 8.9
       },
       {
         "id": "ood_llm_tune",
@@ -1763,7 +1763,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 7.3
+        "latency_ms": 9.6
       },
       {
         "id": "gibberish",
@@ -1789,7 +1789,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 6.9
+        "latency_ms": 8.7
       },
       {
         "id": "false_premise_2048",
@@ -1815,7 +1815,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.2
+        "latency_ms": 8.1
       },
       {
         "id": "false_premise_512_baseline",
@@ -1842,7 +1842,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 8.2
+        "latency_ms": 10.3
       },
       {
         "id": "ambiguous_improved",
@@ -1869,7 +1869,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.7
+        "latency_ms": 10.6
       },
       {
         "id": "ambiguous_chunks",
@@ -1899,7 +1899,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 7.8
+        "latency_ms": 8.0
       },
       {
         "id": "minimal_overlap",
@@ -1926,7 +1926,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 7.7
+        "latency_ms": 8.5
       },
       {
         "id": "multi_hop_compare",
@@ -1954,7 +1954,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 8.1
+        "latency_ms": 11.1
       },
       {
         "id": "multi_hop_policy_lie",
@@ -1981,7 +1981,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.5
+        "latency_ms": 8.5
       },
       {
         "id": "paraphrase_no_lexical_overlap",
@@ -2008,7 +2008,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.1
+        "latency_ms": 10.8
       },
       {
         "id": "typo_brutal",
@@ -2035,7 +2035,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 7.9
+        "latency_ms": 11.6
       },
       {
         "id": "poison_production_final",
@@ -2066,7 +2066,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 10.9
+        "latency_ms": 9.2
       },
       {
         "id": "poison_abandoned_256",
@@ -2096,7 +2096,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.5
+        "latency_ms": 11.1
       },
       {
         "id": "poison_hybrid_mandatory",
@@ -2124,7 +2124,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 8.4
+        "latency_ms": 11.2
       },
       {
         "id": "exact_recall_at5",
@@ -2153,7 +2153,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.3
+        "latency_ms": 10.4
       },
       {
         "id": "negation_never_tested",
@@ -2181,7 +2181,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.8
+        "latency_ms": 7.8
       },
       {
         "id": "cross_doc_overlap",
@@ -2208,7 +2208,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 11.5
+        "latency_ms": 7.1
       },
       {
         "id": "distractor_similar_topic",
@@ -2237,7 +2237,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 7.6
+        "latency_ms": 9.9
       },
       {
         "id": "contradiction_check",
@@ -2264,7 +2264,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 8.1
+        "latency_ms": 7.9
       },
       {
         "id": "empty_index_simulation",
@@ -2290,10 +2290,10 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 9.4
+        "latency_ms": 6.4
       }
     ],
-    "runtime.total_s": 4.55
+    "runtime.total_s": 4.71
   },
   "router": {
     "config": {
@@ -2603,7 +2603,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.0
+        "latency_ms": 0.1
       },
       {
         "id": "ambiguous_improved",
@@ -2630,7 +2630,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 4540.0
+        "latency_ms": 4501.3
       },
       {
         "id": "ambiguous_chunks",
@@ -2660,7 +2660,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.0
+        "latency_ms": 0.1
       },
       {
         "id": "minimal_overlap",
@@ -2687,7 +2687,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 6.6
+        "latency_ms": 7.7
       },
       {
         "id": "multi_hop_compare",
@@ -2715,7 +2715,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 8.3
+        "latency_ms": 10.6
       },
       {
         "id": "multi_hop_policy_lie",
@@ -2770,7 +2770,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.667
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "typo_brutal",
@@ -2796,7 +2796,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.667
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "poison_production_final",
@@ -2826,7 +2826,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.667
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "poison_abandoned_256",
@@ -2856,7 +2856,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "poison_hybrid_mandatory",
@@ -2884,7 +2884,7 @@
           "gen.faithfulness": 0.75,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "exact_recall_at5",
@@ -2911,7 +2911,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "negation_never_tested",
@@ -2939,7 +2939,7 @@
           "gen.faithfulness": 1.0,
           "gen.citation_coverage": 0.5
         },
-        "latency_ms": 0.1
+        "latency_ms": 0.0
       },
       {
         "id": "cross_doc_overlap",
@@ -3048,6 +3048,6 @@
         "latency_ms": 0.0
       }
     ],
-    "runtime.total_s": 4.56
+    "runtime.total_s": 4.52
   }
 }

@@ -3,6 +3,7 @@ from src.retrieval.guard import (
     apply_retrieval_guard,
     build_doc_trust_map,
     filter_superseded_hits,
+    guard_config_for_corpus,
     query_has_unseen_numerics,
     trust_tier_for_source,
     wrap_guarded_search,
@@ -56,6 +57,12 @@ def test_apply_guard_rejects_unseen_numeric():
     )
     assert guarded == []
     assert query_has_unseen_numerics("Why did the 2048-token chunk experiment fail?", "1024 baseline 256")
+
+
+def test_guard_config_disabled_without_superseded_docs():
+    chunks = [{"doc_id": "doc_0", "trust_tier": "trusted", "text": "ok"}]
+    effective = guard_config_for_corpus(chunks, GuardConfig())
+    assert effective.enabled is False
 
 
 def test_wrap_guarded_search_filters_poison():

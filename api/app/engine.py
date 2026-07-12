@@ -20,6 +20,7 @@ from src.retrieval.guard import (  # noqa: E402
     apply_retrieval_guard,
     build_doc_trust_map,
     build_trusted_corpus_blob,
+    guard_config_for_corpus,
     trust_tier_for_source,
 )
 from src.retrieval.hybrid import HybridRetriever  # noqa: E402
@@ -171,6 +172,9 @@ class RagEngine:
             )
             raw = hybrid.search(question, top_k)
 
+        effective_guard = guard_config_for_corpus(chunks, self._guard)
+        if not effective_guard.enabled:
+            return [_result_to_context(hit) for hit in raw]
         guarded = apply_retrieval_guard(
             question,
             raw,
@@ -178,7 +182,7 @@ class RagEngine:
             route=route,
             doc_trust=build_doc_trust_map(chunks),
             trusted_corpus_blob=build_trusted_corpus_blob(chunks),
-            cfg=self._guard,
+            cfg=effective_guard,
         )
         return [_result_to_context(hit) for hit in guarded]
 
