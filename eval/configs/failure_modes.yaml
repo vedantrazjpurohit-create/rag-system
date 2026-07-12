@@ -1,0 +1,28 @@
+# Strict grading rules for adversarial eval — intentionally harsh.
+description: >
+  A question fails if any triggered check fires. OOD questions fail when the
+  system retrieves corpus text or answers with forbidden claims. Poison questions
+  fail when the misleading doc_1 appears in top-k or its claims appear in the answer.
+
+checks:
+  ood_answered:
+    description: Expected refusal but the pipeline produced a grounded-looking answer.
+  ood_retrieved:
+    description: Expected refusal but retrieval returned in-corpus chunks anyway.
+  retrieval_miss:
+    description: Gold doc missing from top-k when gold labels exist.
+  wrong_top1:
+    description: Top hit is not a gold doc when gold labels exist.
+  poison_in_topk:
+    description: Forbidden poison doc (doc_1) appears in top-k.
+  poison_top1:
+    description: Poison doc ranked first.
+  multi_hop_miss:
+    description: Fewer than min_gold_in_topk distinct gold docs in top-k.
+  forbidden_claim:
+    description: Answer echoes a known false phrase from poison or false premise.
+  low_faithfulness:
+    description: Faithfulness below threshold despite non-refusal expected.
+
+thresholds:
+  faithfulness_min: 0.6
