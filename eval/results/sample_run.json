@@ -1,0 +1,14 @@
+{
+  "config": "configs/default.yaml",
+  "num_questions": 2,
+  "metrics": {
+    "retrieval.recall_at_k": 0.5,
+    "retrieval.mrr": 0.5,
+    "retrieval.ndcg_at_k": 0.631,
+    "gen.faithfulness": 0.8,
+    "gen.citation_coverage": 1.0,
+    "latency.p50_ms": 16.8,
+    "latency.p95_ms": 16.8,
+    "runtime.total_s": 25.35
+  }
+}

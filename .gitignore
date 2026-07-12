@@ -1,0 +1,13 @@
+.venv/
+.hf_cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+api/chroma/
+eval/chroma/
+eval/results/run_*.json

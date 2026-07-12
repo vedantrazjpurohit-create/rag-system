@@ -1,0 +1,23 @@
+seed: 42
+
+data:
+  raw_dir: data/raw
+  questions_file: data/questions.jsonl
+
+ingestion:
+  chunk_size: 512
+  chunk_overlap: 64
+  splitter: recursive
+
+retrieval:
+  embedder: sentence-transformers/all-MiniLM-L6-v2
+  top_k: 5
+  collection_name: rag_eval_bench
+
+evaluation:
+  metrics:
+    - recall_at_k
+    - mrr
+    - faithfulness
+    - citation_coverage
+  k: 5

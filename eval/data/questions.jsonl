@@ -1,0 +1,2 @@
+{"id": "q1", "question": "What chunk size was tested first?", "gold_doc_ids": ["doc_0"], "gold_answer": "The initial baseline used 1024-token chunks."}
+{"id": "q2", "question": "What happened when chunk size was reduced to 256?", "gold_doc_ids": ["doc_1"], "gold_answer": "Recall improved but hallucination increased without citation checks."}
