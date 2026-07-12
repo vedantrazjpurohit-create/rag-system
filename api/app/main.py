@@ -1,8 +1,26 @@
+from __future__ import annotations
+
+import json
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.engine import RagEngine
+
+ROOT = Path(__file__).resolve().parents[2]
+EVAL_ROOT = ROOT / "eval"
+if str(EVAL_ROOT) not in sys.path:
+    sys.path.insert(0, str(EVAL_ROOT))
+
+from src.pipeline import evaluate_questions, load_questions  # noqa: E402
+
+DEFAULT_QUESTIONS_PATH = EVAL_ROOT / "data" / "questions.jsonl"
+HISTORY_PATH = ROOT / "results" / "history.jsonl"
 
 app = FastAPI(title="rag-api", version="0.1.0")
 engine = RagEngine()
@@ -11,6 +29,20 @@ engine = RagEngine()
 class QueryRequest(BaseModel):
     question: str = Field(min_length=3)
     top_k: int = Field(default=5, ge=1, le=20)
+
+
+class EvalQuestion(BaseModel):
+    id: str | None = None
+    question: str = Field(min_length=3)
+    gold_doc_ids: list[str] = Field(default_factory=list)
+    gold_answer: str | None = None
+
+
+class EvalRequest(BaseModel):
+    questions: list[EvalQuestion] | None = None
+    top_k: int = Field(default=5, ge=1, le=20)
+    k: int = Field(default=5, ge=1, le=20)
+    persist: bool = True
 
 
 @app.get("/health")
@@ -34,8 +66,9 @@ async def ingest(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=422, detail="Uploaded file has no readable text")
 
     source = file.filename or "upload"
-    count = engine.ingest_text(text, source=source)
-    return {"chunks_indexed": count, "source": source}
+    doc_id = engine.doc_id_for_source(source)
+    count = engine.ingest_text(text, source=source, doc_id=doc_id)
+    return {"chunks_indexed": count, "source": source, "doc_id": doc_id}
 
 
 @app.post("/query")
@@ -56,3 +89,63 @@ def query(payload: QueryRequest):
             "X-Total-Ms": str(round(result.total_ms, 2)),
         },
     )
+
+
+@app.post("/eval")
+def run_eval(payload: EvalRequest | None = None) -> dict:
+    payload = payload or EvalRequest()
+    if engine.stats()["chunk_count"] == 0:
+        raise HTTPException(status_code=422, detail="Ingest documents before running eval")
+
+    questions = _eval_questions(payload)
+    started = time.perf_counter()
+    results = evaluate_questions(
+        questions=questions,
+        search=engine.search_contexts,
+        top_k=payload.top_k,
+        k=payload.k,
+        config={
+            "source": "live_api_index",
+            "top_k": payload.top_k,
+            "k": payload.k,
+            "questions": len(questions),
+        },
+        started=started,
+    )
+
+    if payload.persist:
+        _append_eval_history(results)
+
+    return results
+
+
+@app.get("/eval/history")
+def eval_history(limit: int = 20) -> dict:
+    limit = max(1, min(limit, 100))
+    if not HISTORY_PATH.exists():
+        return {"runs": []}
+
+    runs = []
+    for line in HISTORY_PATH.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line:
+            runs.append(json.loads(line))
+    return {"runs": runs[-limit:]}
+
+
+def _eval_questions(payload: EvalRequest) -> list[dict]:
+    if payload.questions is not None:
+        return [question.model_dump(exclude_none=True) for question in payload.questions]
+    return load_questions(DEFAULT_QUESTIONS_PATH)
+
+
+def _append_eval_history(results: dict) -> None:
+    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "metrics": results["metrics"],
+        "config": results["config"],
+        "num_questions": results["num_questions"],
+    }
+    with HISTORY_PATH.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, sort_keys=True) + "\n")
