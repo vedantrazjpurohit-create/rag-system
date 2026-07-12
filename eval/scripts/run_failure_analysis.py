@@ -3,8 +3,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import warnings
 from pathlib import Path
+
+# Keep stderr quiet on Windows (PowerShell treats stderr as failure with 2>&1).
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+warnings.filterwarnings("ignore", message=".*unauthenticated requests to the HF Hub.*")
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
