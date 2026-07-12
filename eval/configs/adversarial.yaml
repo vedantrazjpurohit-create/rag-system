@@ -22,3 +22,14 @@ evaluation:
     - faithfulness
     - citation_coverage
   k: 5
+
+guard:
+  enabled: false
+
+guarded:
+  enabled: true
+  min_vector_score: 0.38
+  min_bm25_score: 0.45
+  min_hybrid_score: 0.35
+  filter_superseded: true
+  reject_unseen_numerics: true

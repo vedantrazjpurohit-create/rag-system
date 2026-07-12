@@ -2,6 +2,8 @@ from pathlib import Path
 
 import fitz
 
+from src.retrieval.guard import trust_tier_for_source
+
 
 def load_documents(raw_dir: str | Path) -> list[dict]:
     """Load markdown and PDF files from a directory."""
@@ -13,11 +15,25 @@ def load_documents(raw_dir: str | Path) -> list[dict]:
     for path in sorted(root.rglob("*")):
         if path.suffix.lower() == ".md":
             text = path.read_text(encoding="utf-8")
-            docs.append({"id": f"doc_{len(docs)}", "source": str(path), "text": text})
+            docs.append(
+                {
+                    "id": f"doc_{len(docs)}",
+                    "source": str(path),
+                    "text": text,
+                    "trust_tier": trust_tier_for_source(str(path)),
+                }
+            )
         elif path.suffix.lower() == ".pdf":
             text = _read_pdf(path)
             if text.strip():
-                docs.append({"id": f"doc_{len(docs)}", "source": str(path), "text": text})
+                docs.append(
+                {
+                    "id": f"doc_{len(docs)}",
+                    "source": str(path),
+                    "text": text,
+                    "trust_tier": trust_tier_for_source(str(path)),
+                }
+            )
 
     if not docs:
         raise ValueError(f"No supported documents found in {root}")

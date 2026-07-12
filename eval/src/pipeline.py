@@ -12,6 +12,7 @@ from src.evaluation.metrics import citation_coverage, faithfulness, mrr, ndcg_at
 from src.ingestion.chunker import chunk_text
 from src.ingestion.loaders import load_documents
 from src.retrieval.bm25 import BM25Index
+from src.retrieval.guard import GuardConfig, REFUSAL_ANSWER, wrap_guarded_search
 from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.index import RetrievalIndex, stable_chunk_id
 from src.retrieval.router import AdaptiveQueryRouter
@@ -62,6 +63,7 @@ def build_chunks(docs: list[dict], chunk_size: int, chunk_overlap: int) -> list[
                     "doc_id": doc["id"],
                     "source": doc["source"],
                     "text": text,
+                    "trust_tier": doc.get("trust_tier", "trusted"),
                 }
             )
     return chunks
@@ -76,7 +78,7 @@ def _hit_value(hit: Any, key: str, default: Any = "") -> Any:
 def generate_answer(question: str, hits: list) -> str:
     """Template answer with lightweight citations; no external LLM required."""
     if not hits:
-        return "No supporting context retrieved."
+        return REFUSAL_ANSWER
 
     snippets = []
     for hit in hits[:2]:
@@ -161,6 +163,20 @@ def _summarize_by_category(score_rows: list[dict]) -> dict:
     }
 
 
+def _guard_config(cfg: dict) -> GuardConfig | None:
+    guard_cfg = cfg.get("guard")
+    if not guard_cfg or not guard_cfg.get("enabled"):
+        return None
+    return GuardConfig(
+        enabled=True,
+        min_vector_score=float(guard_cfg.get("min_vector_score", 0.38)),
+        min_bm25_score=float(guard_cfg.get("min_bm25_score", 0.45)),
+        min_hybrid_score=float(guard_cfg.get("min_hybrid_score", 0.35)),
+        filter_superseded=bool(guard_cfg.get("filter_superseded", True)),
+        reject_unseen_numerics=bool(guard_cfg.get("reject_unseen_numerics", True)),
+    )
+
+
 def build_search(
     chunks: list[dict],
     cfg: dict,
@@ -189,11 +205,6 @@ def build_search(
             bm25_index.index_chunks(chunks)
         return bm25_index
 
-    if strategy == "vector":
-        return vector().search
-    if strategy == "bm25":
-        return bm25().search
-
     def hybrid_search(query: str, top_k: int) -> list[Any]:
         hybrid = HybridRetriever(
             vector_search=vector().search,
@@ -201,24 +212,37 @@ def build_search(
         )
         return hybrid.search(query, top_k)
 
-    if strategy == "hybrid":
-        hybrid = HybridRetriever(
-            vector_search=vector().search,
-            bm25_search=bm25().search,
-        )
-        return hybrid.search
-
     router = AdaptiveQueryRouter()
 
-    def router_search(query: str, top_k: int) -> list[Any]:
-        selected = router.pick_strategy(query)
-        if selected == "vector":
-            return vector().search(query, top_k)
-        if selected == "bm25":
-            return bm25().search(query, top_k)
-        return hybrid_search(query, top_k)
+    if strategy == "vector":
+        search = vector().search
+    elif strategy == "bm25":
+        search = bm25().search
+    elif strategy == "hybrid":
+        search = hybrid_search
+    else:
 
-    return router_search
+        def router_search(query: str, top_k: int) -> list[Any]:
+            selected = router.pick_strategy(query)
+            if selected == "vector":
+                return vector().search(query, top_k)
+            if selected == "bm25":
+                return bm25().search(query, top_k)
+            return hybrid_search(query, top_k)
+
+        search = router_search
+
+    guard = _guard_config(cfg)
+    if guard:
+        return wrap_guarded_search(
+            search,
+            strategy=strategy,
+            chunks=chunks,
+            cfg=guard,
+            router=router,
+        )
+
+    return search
 
 
 def run_pipeline(config_path: str | Path, strategy: str | None = None) -> dict:

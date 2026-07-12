@@ -14,6 +14,14 @@ if str(EVAL_ROOT) not in sys.path:
     sys.path.insert(0, str(EVAL_ROOT))
 
 from src.retrieval.bm25 import BM25Index  # noqa: E402
+from src.retrieval.guard import (  # noqa: E402
+    GuardConfig,
+    REFUSAL_ANSWER,
+    apply_retrieval_guard,
+    build_doc_trust_map,
+    build_trusted_corpus_blob,
+    trust_tier_for_source,
+)
 from src.retrieval.hybrid import HybridRetriever  # noqa: E402
 from src.retrieval.index import SearchResult  # noqa: E402
 from src.retrieval.router import AdaptiveQueryRouter  # noqa: E402
@@ -39,6 +47,7 @@ class RagEngine:
         self._chunks_by_id: dict[str, dict] = {}
         self._bm25 = BM25Index()
         self._router = AdaptiveQueryRouter()
+        self._guard = GuardConfig()
 
     def ingest_text(self, text: str, source: str, doc_id: str | None = None) -> int:
         chunks = _chunk(text, 512, 64)
@@ -46,6 +55,7 @@ class RagEngine:
             return 0
 
         doc_id = doc_id or self.doc_id_for_source(source)
+        trust_tier = trust_tier_for_source(source)
         ids = []
         docs = []
         metas = []
@@ -61,6 +71,7 @@ class RagEngine:
                 "doc_id": doc_id,
                 "source": source,
                 "text": chunk,
+                "trust_tier": trust_tier,
             }
 
         self.collection.upsert(ids=ids, documents=docs, embeddings=embeddings, metadatas=metas)
@@ -131,7 +142,7 @@ class RagEngine:
         retrieve_ms = (time.perf_counter() - t0) * 1000
 
         if not contexts:
-            answer = "No indexed context found. Ingest a document first."
+            answer = REFUSAL_ANSWER if self.collection.count() else "No indexed context found. Ingest a document first."
         else:
             lead = contexts[0]["text"].replace("\n", " ")[:220]
             answer = f"Top match suggests: {lead}"
@@ -143,19 +154,33 @@ class RagEngine:
         if strategy not in SUPPORTED_STRATEGIES:
             raise ValueError(f"Unsupported retrieval strategy: {strategy}")
 
+        chunks = list(self._chunks_by_id.values())
+        route = self._router.classify(question)
+
         if strategy == "vector":
-            return [_result_to_context(hit) for hit in self._search_vector(question, top_k)]
-        if strategy == "bm25":
-            return [_result_to_context(hit) for hit in self._bm25.search(question, top_k)]
-        if strategy == "router":
+            raw = self._search_vector(question, top_k)
+        elif strategy == "bm25":
+            raw = self._bm25.search(question, top_k)
+        elif strategy == "router":
             selected = self._router.pick_strategy(question)
             return self.search_contexts(question, top_k=top_k, strategy=selected)
+        else:
+            hybrid = HybridRetriever(
+                vector_search=self._search_vector,
+                bm25_search=self._bm25.search,
+            )
+            raw = hybrid.search(question, top_k)
 
-        hybrid = HybridRetriever(
-            vector_search=self._search_vector,
-            bm25_search=self._bm25.search,
+        guarded = apply_retrieval_guard(
+            question,
+            raw,
+            strategy=strategy,
+            route=route,
+            doc_trust=build_doc_trust_map(chunks),
+            trusted_corpus_blob=build_trusted_corpus_blob(chunks),
+            cfg=self._guard,
         )
-        return [_result_to_context(hit) for hit in hybrid.search(question, top_k)]
+        return [_result_to_context(hit) for hit in guarded]
 
     def _search_vector(self, question: str, top_k: int = 5) -> list[SearchResult]:
         count = self.collection.count()

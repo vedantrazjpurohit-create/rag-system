@@ -9,5 +9,8 @@ results/*.json
 !results/hybrid_by_category.json
 !results/router_by_category.json
 !results/failure_analysis.json
+!results/failure_analysis_baseline.json
+!results/failure_analysis_guarded.json
+!results/failure_analysis_comparison.json
 !results/comparison.png
 !.gitkeep

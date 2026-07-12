@@ -56,12 +56,21 @@ def _looks_out_of_domain(text: str) -> bool:
     hints = {
         "weather",
         "stock",
+        "nvidia",
         "movie",
         "recipe",
+        "butter chicken",
         "flight",
         "president",
         "capital of",
         "sports",
+        "fifa",
+        "world cup",
+        "fine-tune",
+        "fine tune",
+        "llama",
+        "lora",
+        "gpu cluster",
     }
     return any(hint in text for hint in hints)
 

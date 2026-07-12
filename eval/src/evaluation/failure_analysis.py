@@ -18,6 +18,7 @@ from src.pipeline import (
     load_questions,
     resolve_project_path,
 )
+from src.retrieval.guard import REFUSAL_ANSWER as REFUSAL_PREFIX
 
 
 def _hit_value(hit: Any, key: str, default: Any = "") -> Any:
@@ -26,8 +27,6 @@ def _hit_value(hit: Any, key: str, default: Any = "") -> Any:
     return getattr(hit, key, default)
 
 SearchFn = Callable[[str, int], list[Any]]
-
-REFUSAL_PREFIX = "No supporting context retrieved."
 
 
 def load_failure_config(path: str | Path) -> dict:
@@ -170,12 +169,24 @@ def _summarize_adversarial(rows: list[dict], config: str | dict, started: float)
     }
 
 
+def _config_with_guard(cfg: dict, use_guard: bool) -> dict:
+    if not use_guard:
+        return cfg
+    guarded = cfg.get("guarded")
+    if not guarded:
+        return cfg
+    merged = dict(cfg)
+    merged["guard"] = guarded
+    return merged
+
+
 def run_adversarial_pipeline(
     config_path: str | Path,
     strategy: str | None = None,
     failure_modes_path: str | Path | None = None,
+    use_guard: bool = False,
 ) -> dict:
-    cfg = load_config(config_path)
+    cfg = _config_with_guard(load_config(config_path), use_guard)
     failure_rules = load_failure_config(failure_modes_path or Path(config_path).parent / "failure_modes.yaml")
     strategy = strategy or cfg["retrieval"].get("strategy", "vector")
     started = time.perf_counter()
@@ -200,6 +211,7 @@ def run_adversarial_pipeline(
             "strategy": strategy,
             "corpus_docs": len(docs),
             "includes_poison_doc": True,
+            "guard_enabled": bool(cfg.get("guard", {}).get("enabled")),
         },
         failure_rules=failure_rules,
         started=started,
@@ -210,6 +222,7 @@ def run_all_strategies(
     config_path: str | Path,
     strategies: list[str] | None = None,
     failure_modes_path: str | Path | None = None,
+    use_guard: bool = False,
 ) -> dict:
     strategies = strategies or ["vector", "bm25", "hybrid", "router"]
     comparison = {}
@@ -218,5 +231,6 @@ def run_all_strategies(
             config_path,
             strategy=strategy,
             failure_modes_path=failure_modes_path,
+            use_guard=use_guard,
         )
     return comparison

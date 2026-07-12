@@ -7,4 +7,4 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 script = ROOT / "eval" / "scripts" / "run_failure_analysis.py"
-raise SystemExit(subprocess.call([sys.executable, str(script)], cwd=ROOT))
+raise SystemExit(subprocess.call([sys.executable, str(script), "--both"], cwd=ROOT))

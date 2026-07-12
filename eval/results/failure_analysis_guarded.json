@@ -1,0 +1,2580 @@
+{
+  "vector": {
+    "config": {
+      "source": "adversarial_eval",
+      "config_path": "C:\\Users\\91773\\github-portfolio\\rag-system\\eval\\configs\\adversarial.yaml",
+      "strategy": "vector",
+      "corpus_docs": 3,
+      "includes_poison_doc": true,
+      "guard_enabled": true
+    },
+    "num_questions": 22,
+    "passed": 8,
+    "failed": 14,
+    "pass_rate": 0.364,
+    "break_rate": 0.636,
+    "failure_counts": {
+      "low_faithfulness": 14,
+      "multi_hop_miss": 1,
+      "retrieval_miss": 14
+    },
+    "metrics_by_failure_mode": {
+      "ambiguous": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "contradiction": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "cross_doc": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "distractor": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "exact_term": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "false_premise": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "gibberish": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "hard_paraphrase": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "minimal_query": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "negation": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "off_topic_entity": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "out_of_domain": {
+        "num_questions": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "typos": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      }
+    },
+    "metrics_by_category": {
+      "adversarial_premise": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "ambiguous": {
+        "num_questions": 3,
+        "passed": 0,
+        "failed": 3,
+        "pass_rate": 0.0
+      },
+      "exact_term_acronym": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "factual_lookup": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "out_of_domain": {
+        "num_questions": 5,
+        "passed": 5,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "paraphrased_factual": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      }
+    },
+    "questions": [
+      {
+        "id": "ood_weather",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 6.8
+      },
+      {
+        "id": "ood_stocks",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ood_llm_tune",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.5
+      },
+      {
+        "id": "gibberish",
+        "category": "out_of_domain",
+        "failure_mode": "gibberish",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.4
+      },
+      {
+        "id": "false_premise_2048",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.1
+      },
+      {
+        "id": "false_premise_512_baseline",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.5
+      },
+      {
+        "id": "ambiguous_improved",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.7
+      },
+      {
+        "id": "ambiguous_chunks",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.0
+      },
+      {
+        "id": "minimal_overlap",
+        "category": "ambiguous",
+        "failure_mode": "minimal_query",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.4
+      },
+      {
+        "id": "multi_hop_compare",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "multi_hop_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 10.2
+      },
+      {
+        "id": "multi_hop_policy_lie",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.0
+      },
+      {
+        "id": "paraphrase_no_lexical_overlap",
+        "category": "paraphrased_factual",
+        "failure_mode": "hard_paraphrase",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.4
+      },
+      {
+        "id": "typo_brutal",
+        "category": "paraphrased_factual",
+        "failure_mode": "typos",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.0
+      },
+      {
+        "id": "poison_production_final",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.2
+      },
+      {
+        "id": "poison_abandoned_256",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.8
+      },
+      {
+        "id": "poison_hybrid_mandatory",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.4
+      },
+      {
+        "id": "exact_recall_at5",
+        "category": "exact_term_acronym",
+        "failure_mode": "exact_term",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.6
+      },
+      {
+        "id": "negation_never_tested",
+        "category": "adversarial_premise",
+        "failure_mode": "negation",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.7
+      },
+      {
+        "id": "cross_doc_overlap",
+        "category": "factual_lookup",
+        "failure_mode": "cross_doc",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.4
+      },
+      {
+        "id": "distractor_similar_topic",
+        "category": "factual_lookup",
+        "failure_mode": "distractor",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.5
+      },
+      {
+        "id": "contradiction_check",
+        "category": "paraphrased_factual",
+        "failure_mode": "contradiction",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 10.2
+      },
+      {
+        "id": "empty_index_simulation",
+        "category": "out_of_domain",
+        "failure_mode": "off_topic_entity",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 12.0
+      }
+    ],
+    "runtime.total_s": 4.64
+  },
+  "bm25": {
+    "config": {
+      "source": "adversarial_eval",
+      "config_path": "C:\\Users\\91773\\github-portfolio\\rag-system\\eval\\configs\\adversarial.yaml",
+      "strategy": "bm25",
+      "corpus_docs": 3,
+      "includes_poison_doc": true,
+      "guard_enabled": true
+    },
+    "num_questions": 22,
+    "passed": 18,
+    "failed": 4,
+    "pass_rate": 0.818,
+    "break_rate": 0.182,
+    "failure_counts": {
+      "forbidden_claim": 1,
+      "low_faithfulness": 2,
+      "ood_answered": 1,
+      "ood_retrieved": 1,
+      "retrieval_miss": 2
+    },
+    "metrics_by_failure_mode": {
+      "ambiguous": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "contradiction": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "cross_doc": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "distractor": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "exact_term": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "false_premise": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "gibberish": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "hard_paraphrase": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "minimal_query": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 2,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "negation": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "off_topic_entity": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "out_of_domain": {
+        "num_questions": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 2,
+        "failed": 1,
+        "pass_rate": 0.667
+      },
+      "typos": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      }
+    },
+    "metrics_by_category": {
+      "adversarial_premise": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "ambiguous": {
+        "num_questions": 3,
+        "passed": 2,
+        "failed": 1,
+        "pass_rate": 0.667
+      },
+      "exact_term_acronym": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "factual_lookup": {
+        "num_questions": 2,
+        "passed": 2,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 2,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "out_of_domain": {
+        "num_questions": 5,
+        "passed": 5,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "paraphrased_factual": {
+        "num_questions": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 2,
+        "failed": 1,
+        "pass_rate": 0.667
+      }
+    },
+    "questions": [
+      {
+        "id": "ood_weather",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "ood_stocks",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "ood_llm_tune",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "gibberish",
+        "category": "out_of_domain",
+        "failure_mode": "gibberish",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "false_premise_2048",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "false_premise_512_baseline",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "ambiguous_improved",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2]",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "ambiguous_chunks",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "minimal_overlap",
+        "category": "ambiguous",
+        "failure_mode": "minimal_query",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0]",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "multi_hop_compare",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "multi_hop_policy_lie",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "paraphrase_no_lexical_overlap",
+        "category": "paraphrased_factual",
+        "failure_mode": "hard_paraphrase",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "typo_brutal",
+        "category": "paraphrased_factual",
+        "failure_mode": "typos",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "poison_production_final",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "poison_abandoned_256",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "poison_hybrid_mandatory",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": false,
+        "failures": [
+          "ood_answered",
+          "ood_retrieved"
+        ],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "exact_recall_at5",
+        "category": "exact_term_acronym",
+        "failure_mode": "exact_term",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "negation_never_tested",
+        "category": "adversarial_premise",
+        "failure_mode": "negation",
+        "passed": false,
+        "failures": [
+          "forbidden_claim"
+        ],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "cross_doc_overlap",
+        "category": "factual_lookup",
+        "failure_mode": "cross_doc",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "distractor_similar_topic",
+        "category": "factual_lookup",
+        "failure_mode": "distractor",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "contradiction_check",
+        "category": "paraphrased_factual",
+        "failure_mode": "contradiction",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "empty_index_simulation",
+        "category": "out_of_domain",
+        "failure_mode": "off_topic_entity",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      }
+    ],
+    "runtime.total_s": 0.01
+  },
+  "hybrid": {
+    "config": {
+      "source": "adversarial_eval",
+      "config_path": "C:\\Users\\91773\\github-portfolio\\rag-system\\eval\\configs\\adversarial.yaml",
+      "strategy": "hybrid",
+      "corpus_docs": 3,
+      "includes_poison_doc": true,
+      "guard_enabled": true
+    },
+    "num_questions": 22,
+    "passed": 7,
+    "failed": 15,
+    "pass_rate": 0.318,
+    "break_rate": 0.682,
+    "failure_counts": {
+      "low_faithfulness": 15,
+      "multi_hop_miss": 1,
+      "retrieval_miss": 15
+    },
+    "metrics_by_failure_mode": {
+      "ambiguous": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "contradiction": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "cross_doc": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "distractor": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "exact_term": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "false_premise": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "gibberish": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "hard_paraphrase": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "minimal_query": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "negation": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "off_topic_entity": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "out_of_domain": {
+        "num_questions": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "typos": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      }
+    },
+    "metrics_by_category": {
+      "adversarial_premise": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "ambiguous": {
+        "num_questions": 3,
+        "passed": 0,
+        "failed": 3,
+        "pass_rate": 0.0
+      },
+      "exact_term_acronym": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "factual_lookup": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "out_of_domain": {
+        "num_questions": 5,
+        "passed": 5,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "paraphrased_factual": {
+        "num_questions": 3,
+        "passed": 0,
+        "failed": 3,
+        "pass_rate": 0.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      }
+    },
+    "questions": [
+      {
+        "id": "ood_weather",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 4396.5
+      },
+      {
+        "id": "ood_stocks",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.1
+      },
+      {
+        "id": "ood_llm_tune",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.5
+      },
+      {
+        "id": "gibberish",
+        "category": "out_of_domain",
+        "failure_mode": "gibberish",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.6
+      },
+      {
+        "id": "false_premise_2048",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.5
+      },
+      {
+        "id": "false_premise_512_baseline",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.1
+      },
+      {
+        "id": "ambiguous_improved",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.1
+      },
+      {
+        "id": "ambiguous_chunks",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.4
+      },
+      {
+        "id": "minimal_overlap",
+        "category": "ambiguous",
+        "failure_mode": "minimal_query",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.0
+      },
+      {
+        "id": "multi_hop_compare",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "multi_hop_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 10.4
+      },
+      {
+        "id": "multi_hop_policy_lie",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.6
+      },
+      {
+        "id": "paraphrase_no_lexical_overlap",
+        "category": "paraphrased_factual",
+        "failure_mode": "hard_paraphrase",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.4
+      },
+      {
+        "id": "typo_brutal",
+        "category": "paraphrased_factual",
+        "failure_mode": "typos",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.6
+      },
+      {
+        "id": "poison_production_final",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.0
+      },
+      {
+        "id": "poison_abandoned_256",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.5
+      },
+      {
+        "id": "poison_hybrid_mandatory",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.8
+      },
+      {
+        "id": "exact_recall_at5",
+        "category": "exact_term_acronym",
+        "failure_mode": "exact_term",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.4
+      },
+      {
+        "id": "negation_never_tested",
+        "category": "adversarial_premise",
+        "failure_mode": "negation",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 11.3
+      },
+      {
+        "id": "cross_doc_overlap",
+        "category": "factual_lookup",
+        "failure_mode": "cross_doc",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 11.4
+      },
+      {
+        "id": "distractor_similar_topic",
+        "category": "factual_lookup",
+        "failure_mode": "distractor",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 10.5
+      },
+      {
+        "id": "contradiction_check",
+        "category": "paraphrased_factual",
+        "failure_mode": "contradiction",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.0
+      },
+      {
+        "id": "empty_index_simulation",
+        "category": "out_of_domain",
+        "failure_mode": "off_topic_entity",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 7.3
+      }
+    ],
+    "runtime.total_s": 4.59
+  },
+  "router": {
+    "config": {
+      "source": "adversarial_eval",
+      "config_path": "C:\\Users\\91773\\github-portfolio\\rag-system\\eval\\configs\\adversarial.yaml",
+      "strategy": "router",
+      "corpus_docs": 3,
+      "includes_poison_doc": true,
+      "guard_enabled": true
+    },
+    "num_questions": 22,
+    "passed": 15,
+    "failed": 7,
+    "pass_rate": 0.682,
+    "break_rate": 0.318,
+    "failure_counts": {
+      "forbidden_claim": 1,
+      "low_faithfulness": 5,
+      "multi_hop_miss": 1,
+      "ood_answered": 1,
+      "ood_retrieved": 1,
+      "retrieval_miss": 5
+    },
+    "metrics_by_failure_mode": {
+      "ambiguous": {
+        "num_questions": 2,
+        "passed": 0,
+        "failed": 2,
+        "pass_rate": 0.0
+      },
+      "contradiction": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "cross_doc": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "distractor": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "exact_term": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "false_premise": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "gibberish": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "hard_paraphrase": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "minimal_query": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "negation": {
+        "num_questions": 1,
+        "passed": 0,
+        "failed": 1,
+        "pass_rate": 0.0
+      },
+      "off_topic_entity": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "out_of_domain": {
+        "num_questions": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 2,
+        "failed": 1,
+        "pass_rate": 0.667
+      },
+      "typos": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      }
+    },
+    "metrics_by_category": {
+      "adversarial_premise": {
+        "num_questions": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.333
+      },
+      "ambiguous": {
+        "num_questions": 3,
+        "passed": 0,
+        "failed": 3,
+        "pass_rate": 0.0
+      },
+      "exact_term_acronym": {
+        "num_questions": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "factual_lookup": {
+        "num_questions": 2,
+        "passed": 2,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "multi_hop": {
+        "num_questions": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      },
+      "out_of_domain": {
+        "num_questions": 5,
+        "passed": 5,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "paraphrased_factual": {
+        "num_questions": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "poison_trap": {
+        "num_questions": 3,
+        "passed": 2,
+        "failed": 1,
+        "pass_rate": 0.667
+      }
+    },
+    "questions": [
+      {
+        "id": "ood_weather",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.2
+      },
+      {
+        "id": "ood_stocks",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "ood_llm_tune",
+        "category": "out_of_domain",
+        "failure_mode": "out_of_domain",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "gibberish",
+        "category": "out_of_domain",
+        "failure_mode": "gibberish",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "false_premise_2048",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "false_premise_512_baseline",
+        "category": "adversarial_premise",
+        "failure_mode": "false_premise",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      },
+      {
+        "id": "ambiguous_improved",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 4848.2
+      },
+      {
+        "id": "ambiguous_chunks",
+        "category": "ambiguous",
+        "failure_mode": "ambiguous",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "minimal_overlap",
+        "category": "ambiguous",
+        "failure_mode": "minimal_query",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 9.5
+      },
+      {
+        "id": "multi_hop_compare",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": false,
+        "failures": [
+          "retrieval_miss",
+          "multi_hop_miss",
+          "low_faithfulness"
+        ],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 8.1
+      },
+      {
+        "id": "multi_hop_policy_lie",
+        "category": "multi_hop",
+        "failure_mode": "multi_hop",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "paraphrase_no_lexical_overlap",
+        "category": "paraphrased_factual",
+        "failure_mode": "hard_paraphrase",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "typo_brutal",
+        "category": "paraphrased_factual",
+        "failure_mode": "typos",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "poison_production_final",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "poison_abandoned_256",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "poison_hybrid_mandatory",
+        "category": "poison_trap",
+        "failure_mode": "poison_trap",
+        "passed": false,
+        "failures": [
+          "ood_answered",
+          "ood_retrieved"
+        ],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "exact_recall_at5",
+        "category": "exact_term_acronym",
+        "failure_mode": "exact_term",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "negation_never_tested",
+        "category": "adversarial_premise",
+        "failure_mode": "negation",
+        "passed": false,
+        "failures": [
+          "forbidden_claim"
+        ],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "cross_doc_overlap",
+        "category": "factual_lookup",
+        "failure_mode": "cross_doc",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_0",
+          "doc_2"
+        ],
+        "gold_doc_ids": [
+          "doc_0"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Baseline chunking (1024 tokens)  The initial baseline used 1024-token chunks with 128 overlap. Retrieval felt slow and often returned whole sections instead of the exact paragrap [doc_doc_0] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "distractor_similar_topic",
+        "category": "factual_lookup",
+        "failure_mode": "distractor",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "contradiction_check",
+        "category": "paraphrased_factual",
+        "failure_mode": "contradiction",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [
+          "doc_2",
+          "doc_0"
+        ],
+        "gold_doc_ids": [
+          "doc_2"
+        ],
+        "answer_excerpt": "Based on retrieved notes: # Smaller chunks experiment (256 tokens)  When chunk size was reduced to 256 tokens, recall@5 improved on the test question set. However, the generator started stitching unrelated  [doc_doc_2] #",
+        "metrics": {
+          "retrieval.recall_at_k": 1.0,
+          "retrieval.mrr": 1.0,
+          "retrieval.ndcg_at_k": 1.0,
+          "gen.faithfulness": 1.0,
+          "gen.citation_coverage": 1.0
+        },
+        "latency_ms": 0.1
+      },
+      {
+        "id": "empty_index_simulation",
+        "category": "out_of_domain",
+        "failure_mode": "off_topic_entity",
+        "passed": true,
+        "failures": [],
+        "retrieved_doc_ids": [],
+        "gold_doc_ids": [],
+        "answer_excerpt": "No supporting context retrieved.",
+        "metrics": {
+          "retrieval.recall_at_k": 0.0,
+          "retrieval.mrr": 0.0,
+          "retrieval.ndcg_at_k": 0.0,
+          "gen.faithfulness": 0.0,
+          "gen.citation_coverage": 0.0
+        },
+        "latency_ms": 0.0
+      }
+    ],
+    "runtime.total_s": 4.87
+  }
+}
