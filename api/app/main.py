@@ -29,7 +29,7 @@ engine = RagEngine()
 class QueryRequest(BaseModel):
     question: str = Field(min_length=3)
     top_k: int = Field(default=5, ge=1, le=20)
-    strategy: str = "vector"
+    strategy: str | None = None
 
 
 class EvalQuestion(BaseModel):
@@ -76,12 +76,13 @@ async def ingest(file: UploadFile = File(...)) -> dict:
 
 @app.post("/query")
 def query(payload: QueryRequest):
-    _validate_strategy(payload.strategy)
-    result = engine.query(payload.question, top_k=payload.top_k, strategy=payload.strategy)
+    strategy = payload.strategy or "router"
+    _validate_strategy(strategy)
+    result = engine.query(payload.question, top_k=payload.top_k, strategy=strategy)
     body = {
         "answer": result.answer,
         "contexts": result.contexts,
-        "strategy": payload.strategy,
+        "strategy": strategy,
         "timing_ms": {
             "retrieve": round(result.retrieve_ms, 2),
             "total": round(result.total_ms, 2),

@@ -16,8 +16,9 @@ if str(EVAL_ROOT) not in sys.path:
 from src.retrieval.bm25 import BM25Index  # noqa: E402
 from src.retrieval.hybrid import HybridRetriever  # noqa: E402
 from src.retrieval.index import SearchResult  # noqa: E402
+from src.retrieval.router import AdaptiveQueryRouter  # noqa: E402
 
-SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid"}
+SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid", "router"}
 
 
 @dataclass
@@ -37,6 +38,7 @@ class RagEngine:
         self._source_doc_ids: dict[str, str] = {}
         self._chunks_by_id: dict[str, dict] = {}
         self._bm25 = BM25Index()
+        self._router = AdaptiveQueryRouter()
 
     def ingest_text(self, text: str, source: str, doc_id: str | None = None) -> int:
         chunks = _chunk(text, 512, 64)
@@ -145,6 +147,9 @@ class RagEngine:
             return [_result_to_context(hit) for hit in self._search_vector(question, top_k)]
         if strategy == "bm25":
             return [_result_to_context(hit) for hit in self._bm25.search(question, top_k)]
+        if strategy == "router":
+            selected = self._router.pick_strategy(question)
+            return self.search_contexts(question, top_k=top_k, strategy=selected)
 
         hybrid = HybridRetriever(
             vector_search=self._search_vector,

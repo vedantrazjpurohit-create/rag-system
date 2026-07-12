@@ -14,9 +14,10 @@ from src.ingestion.loaders import load_documents
 from src.retrieval.bm25 import BM25Index
 from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.index import RetrievalIndex, stable_chunk_id
+from src.retrieval.router import AdaptiveQueryRouter
 
 SearchFn = Callable[[str, int], list[Any]]
-SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid"}
+SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid", "router"}
 SCORE_KEYS = [
     "retrieval.recall_at_k",
     "retrieval.mrr",
@@ -171,27 +172,53 @@ def build_search(
     vector_index = None
     bm25_index = None
 
-    if strategy in {"vector", "hybrid"}:
-        vector_index = RetrievalIndex(
-            embedder_name=cfg["retrieval"]["embedder"],
-            collection_name=cfg["retrieval"]["collection_name"],
-        )
-        vector_index.index_chunks(chunks)
+    def vector() -> RetrievalIndex:
+        nonlocal vector_index
+        if vector_index is None:
+            vector_index = RetrievalIndex(
+                embedder_name=cfg["retrieval"]["embedder"],
+                collection_name=cfg["retrieval"]["collection_name"],
+            )
+            vector_index.index_chunks(chunks)
+        return vector_index
 
-    if strategy in {"bm25", "hybrid"}:
-        bm25_index = BM25Index()
-        bm25_index.index_chunks(chunks)
+    def bm25() -> BM25Index:
+        nonlocal bm25_index
+        if bm25_index is None:
+            bm25_index = BM25Index()
+            bm25_index.index_chunks(chunks)
+        return bm25_index
 
     if strategy == "vector":
-        return vector_index.search
+        return vector().search
     if strategy == "bm25":
-        return bm25_index.search
+        return bm25().search
 
-    hybrid = HybridRetriever(
-        vector_search=vector_index.search,
-        bm25_search=bm25_index.search,
-    )
-    return hybrid.search
+    def hybrid_search(query: str, top_k: int) -> list[Any]:
+        hybrid = HybridRetriever(
+            vector_search=vector().search,
+            bm25_search=bm25().search,
+        )
+        return hybrid.search(query, top_k)
+
+    if strategy == "hybrid":
+        hybrid = HybridRetriever(
+            vector_search=vector().search,
+            bm25_search=bm25().search,
+        )
+        return hybrid.search
+
+    router = AdaptiveQueryRouter()
+
+    def router_search(query: str, top_k: int) -> list[Any]:
+        selected = router.pick_strategy(query)
+        if selected == "vector":
+            return vector().search(query, top_k)
+        if selected == "bm25":
+            return bm25().search(query, top_k)
+        return hybrid_search(query, top_k)
+
+    return router_search
 
 
 def run_pipeline(config_path: str | Path, strategy: str | None = None) -> dict:

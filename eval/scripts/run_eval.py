@@ -14,7 +14,7 @@ from src.pipeline import run_pipeline
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run RAG evaluation bench")
     parser.add_argument("--config", default=str(ROOT / "configs" / "default.yaml"))
-    parser.add_argument("--strategy", choices=["vector", "bm25", "hybrid"], default=None)
+    parser.add_argument("--strategy", choices=["vector", "bm25", "hybrid", "router"], default=None)
     args = parser.parse_args()
 
     results = run_pipeline(args.config, strategy=args.strategy)

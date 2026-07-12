@@ -1,6 +1,7 @@
 from src.retrieval.bm25 import BM25Index
 from src.retrieval.hybrid import reciprocal_rank_fusion
 from src.retrieval.index import SearchResult
+from src.retrieval.router import AdaptiveQueryRouter
 
 
 def test_bm25_returns_keyword_match_first():
@@ -30,3 +31,12 @@ def test_rrf_hybrid_fuses_vector_and_bm25_ranks():
     fused = reciprocal_rank_fusion(vector_hits, bm25_hits, top_k=3)
 
     assert [hit.chunk_id for hit in fused] == ["c2", "c1", "c3"]
+
+
+def test_router_classifies_query_and_picks_strategy():
+    router = AdaptiveQueryRouter()
+
+    route = router.classify("What happened when chunk size was reduced to 256?")
+
+    assert route.category == "paraphrased_factual"
+    assert route.strategy == "bm25"

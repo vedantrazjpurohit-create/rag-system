@@ -52,6 +52,13 @@ def test_ingest_and_query_roundtrip():
         assert "timing_ms" in body
         assert query.headers.get("X-Retrieve-Ms")
 
+    default_query = client.post(
+        "/query",
+        json={"question": "What are ArUco markers used for?", "top_k": 3},
+    )
+    assert default_query.status_code == 200
+    assert default_query.json()["strategy"] == "router"
+
 
 def test_ingest_rejects_empty_file():
     files = {"file": ("empty.txt", io.BytesIO(b"   \n"), "text/plain")}
