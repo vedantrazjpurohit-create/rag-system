@@ -8,4 +8,5 @@ results/*.json
 !results/baseline_by_category.json
 !results/hybrid_by_category.json
 !results/router_by_category.json
+!results/comparison.png
 !.gitkeep

@@ -22,7 +22,7 @@ from src.pipeline import evaluate_questions, load_questions  # noqa: E402
 DEFAULT_QUESTIONS_PATH = EVAL_ROOT / "data" / "questions.jsonl"
 HISTORY_PATH = ROOT / "results" / "history.jsonl"
 
-app = FastAPI(title="rag-api", version="0.1.0")
+app = FastAPI(title="rag-system", version="0.2.0")
 engine = RagEngine()
 
 

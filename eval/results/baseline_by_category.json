@@ -1,19 +1,19 @@
 {
   "config": {
-    "source": "standalone_vector_index",
-    "config_path": "eval/configs/default.yaml",
+    "source": "standalone_index",
+    "config_path": "C:\\Users\\91773\\github-portfolio\\rag-system\\eval\\configs\\default.yaml",
     "strategy": "vector"
   },
   "num_questions": 2,
   "metrics": {
-    "retrieval.recall_at_k": 0.5,
-    "retrieval.mrr": 0.5,
-    "retrieval.ndcg_at_k": 0.5,
-    "gen.faithfulness": 0.8,
+    "retrieval.recall_at_k": 1.0,
+    "retrieval.mrr": 0.75,
+    "retrieval.ndcg_at_k": 0.815,
+    "gen.faithfulness": 1.0,
     "gen.citation_coverage": 1.0,
-    "latency.p50_ms": 20.1,
-    "latency.p95_ms": 20.1,
-    "runtime.total_s": 5.33
+    "latency.p50_ms": 36.3,
+    "latency.p95_ms": 36.3,
+    "runtime.total_s": 5.48
   },
   "metrics_by_category": {
     "factual_lookup": {
@@ -22,22 +22,22 @@
         "retrieval.recall_at_k": 1.0,
         "retrieval.mrr": 1.0,
         "retrieval.ndcg_at_k": 1.0,
-        "gen.faithfulness": 0.8,
+        "gen.faithfulness": 1.0,
         "gen.citation_coverage": 1.0,
-        "latency.p50_ms": 20.1,
-        "latency.p95_ms": 20.1
+        "latency.p50_ms": 36.3,
+        "latency.p95_ms": 36.3
       }
     },
     "paraphrased_factual": {
       "num_questions": 1,
       "metrics": {
-        "retrieval.recall_at_k": 0.0,
-        "retrieval.mrr": 0.0,
-        "retrieval.ndcg_at_k": 0.0,
-        "gen.faithfulness": 0.8,
+        "retrieval.recall_at_k": 1.0,
+        "retrieval.mrr": 0.5,
+        "retrieval.ndcg_at_k": 0.631,
+        "gen.faithfulness": 1.0,
         "gen.citation_coverage": 1.0,
-        "latency.p50_ms": 14.8,
-        "latency.p95_ms": 14.8
+        "latency.p50_ms": 15.9,
+        "latency.p95_ms": 15.9
       }
     }
   }

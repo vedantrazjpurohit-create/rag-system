@@ -70,12 +70,12 @@ def test_eval_endpoint_matches_standalone_pipeline(monkeypatch, tmp_path):
     api_main.engine.reset()
     monkeypatch.setattr(api_main, "HISTORY_PATH", tmp_path / "history.jsonl")
 
-    corpus_path = Path("eval/data/raw/sample_corpus.md")
-    corpus = corpus_path.read_text(encoding="utf-8")
-    files = {"file": ("sample_corpus.md", io.BytesIO(corpus.encode()), "text/plain")}
-    ingest = client.post("/ingest", files=files)
-    assert ingest.status_code == 200
-    assert ingest.json()["doc_id"] == "doc_0"
+    for filename in ("baseline_chunks.md", "smaller_chunks_experiment.md"):
+        corpus_path = Path("eval/data/raw") / filename
+        corpus = corpus_path.read_text(encoding="utf-8")
+        files = {"file": (filename, io.BytesIO(corpus.encode()), "text/plain")}
+        ingest = client.post("/ingest", files=files)
+        assert ingest.status_code == 200
 
     baseline = run_pipeline("eval/configs/default.yaml")
     questions = load_questions("eval/data/questions.jsonl")
