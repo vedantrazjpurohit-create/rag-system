@@ -11,6 +11,7 @@ ingestion:
 
 retrieval:
   embedder: sentence-transformers/all-MiniLM-L6-v2
+  strategy: vector
   top_k: 5
   collection_name: rag_eval_bench
 

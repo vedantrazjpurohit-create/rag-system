@@ -40,12 +40,17 @@ def test_ingest_and_query_roundtrip():
     assert stats.json()["chunk_count"] >= 1
     assert "notes.txt" in stats.json()["sources"]
 
-    query = client.post("/query", json={"question": "What are ArUco markers used for?", "top_k": 3})
-    assert query.status_code == 200
-    body = query.json()
-    assert body["contexts"]
-    assert "timing_ms" in body
-    assert query.headers.get("X-Retrieve-Ms")
+    for strategy in ["vector", "bm25", "hybrid"]:
+        query = client.post(
+            "/query",
+            json={"question": "What are ArUco markers used for?", "top_k": 3, "strategy": strategy},
+        )
+        assert query.status_code == 200
+        body = query.json()
+        assert body["strategy"] == strategy
+        assert body["contexts"]
+        assert "timing_ms" in body
+        assert query.headers.get("X-Retrieve-Ms")
 
 
 def test_ingest_rejects_empty_file():
@@ -97,3 +102,11 @@ def test_eval_endpoint_matches_standalone_pipeline(monkeypatch, tmp_path):
     history = client.get("/eval/history")
     assert history.status_code == 200
     assert history.json()["runs"][0]["metrics"] == history_record["metrics"]
+
+
+def test_query_rejects_unknown_strategy():
+    response = client.post(
+        "/query",
+        json={"question": "What are ArUco markers used for?", "top_k": 3, "strategy": "unknown"},
+    )
+    assert response.status_code == 422

@@ -13,6 +13,7 @@ class SearchResult:
     doc_id: str
     text: str
     score: float
+    source: str = ""
 
 
 class RetrievalIndex:
@@ -49,6 +50,7 @@ class RetrievalIndex:
                     doc_id=metadata["doc_id"],
                     text=results["documents"][0][idx],
                     score=1.0 - distance,
+                    source=metadata.get("source", ""),
                 )
             )
         return hits

@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.engine import RagEngine
+from app.engine import RagEngine, SUPPORTED_STRATEGIES
 
 ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = ROOT / "eval"
@@ -29,6 +29,7 @@ engine = RagEngine()
 class QueryRequest(BaseModel):
     question: str = Field(min_length=3)
     top_k: int = Field(default=5, ge=1, le=20)
+    strategy: str = "vector"
 
 
 class EvalQuestion(BaseModel):
@@ -43,6 +44,7 @@ class EvalRequest(BaseModel):
     questions: list[EvalQuestion] | None = None
     top_k: int = Field(default=5, ge=1, le=20)
     k: int = Field(default=5, ge=1, le=20)
+    strategy: str = "vector"
     persist: bool = True
 
 
@@ -74,10 +76,12 @@ async def ingest(file: UploadFile = File(...)) -> dict:
 
 @app.post("/query")
 def query(payload: QueryRequest):
-    result = engine.query(payload.question, top_k=payload.top_k)
+    _validate_strategy(payload.strategy)
+    result = engine.query(payload.question, top_k=payload.top_k, strategy=payload.strategy)
     body = {
         "answer": result.answer,
         "contexts": result.contexts,
+        "strategy": payload.strategy,
         "timing_ms": {
             "retrieve": round(result.retrieve_ms, 2),
             "total": round(result.total_ms, 2),
@@ -97,16 +101,22 @@ def run_eval(payload: EvalRequest | None = None) -> dict:
     payload = payload or EvalRequest()
     if engine.stats()["chunk_count"] == 0:
         raise HTTPException(status_code=422, detail="Ingest documents before running eval")
+    _validate_strategy(payload.strategy)
 
     questions = _eval_questions(payload)
     started = time.perf_counter()
     results = evaluate_questions(
         questions=questions,
-        search=engine.search_contexts,
+        search=lambda question, top_k: engine.search_contexts(
+            question,
+            top_k=top_k,
+            strategy=payload.strategy,
+        ),
         top_k=payload.top_k,
         k=payload.k,
         config={
             "source": "live_api_index",
+            "strategy": payload.strategy,
             "top_k": payload.top_k,
             "k": payload.k,
             "questions": len(questions),
@@ -151,3 +161,9 @@ def _append_eval_history(results: dict) -> None:
     }
     with HISTORY_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def _validate_strategy(strategy: str) -> None:
+    if strategy not in SUPPORTED_STRATEGIES:
+        allowed = ", ".join(sorted(SUPPORTED_STRATEGIES))
+        raise HTTPException(status_code=422, detail=f"Unsupported retrieval strategy: {strategy}. Use one of: {allowed}")

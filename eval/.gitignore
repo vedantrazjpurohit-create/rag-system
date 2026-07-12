@@ -6,4 +6,5 @@ __pycache__/
 results/*.json
 !results/sample_run.json
 !results/baseline_by_category.json
+!results/hybrid_by_category.json
 !.gitkeep

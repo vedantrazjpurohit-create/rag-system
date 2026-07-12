@@ -11,9 +11,12 @@ import yaml
 from src.evaluation.metrics import citation_coverage, faithfulness, mrr, ndcg_at_k, recall_at_k
 from src.ingestion.chunker import chunk_text
 from src.ingestion.loaders import load_documents
+from src.retrieval.bm25 import BM25Index
+from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.index import RetrievalIndex, stable_chunk_id
 
 SearchFn = Callable[[str, int], list[Any]]
+SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid"}
 SCORE_KEYS = [
     "retrieval.recall_at_k",
     "retrieval.mrr",
@@ -157,9 +160,44 @@ def _summarize_by_category(score_rows: list[dict]) -> dict:
     }
 
 
-def run_pipeline(config_path: str | Path) -> dict:
+def build_search(
+    chunks: list[dict],
+    cfg: dict,
+    strategy: str = "vector",
+) -> SearchFn:
+    if strategy not in SUPPORTED_STRATEGIES:
+        raise ValueError(f"Unsupported retrieval strategy: {strategy}")
+
+    vector_index = None
+    bm25_index = None
+
+    if strategy in {"vector", "hybrid"}:
+        vector_index = RetrievalIndex(
+            embedder_name=cfg["retrieval"]["embedder"],
+            collection_name=cfg["retrieval"]["collection_name"],
+        )
+        vector_index.index_chunks(chunks)
+
+    if strategy in {"bm25", "hybrid"}:
+        bm25_index = BM25Index()
+        bm25_index.index_chunks(chunks)
+
+    if strategy == "vector":
+        return vector_index.search
+    if strategy == "bm25":
+        return bm25_index.search
+
+    hybrid = HybridRetriever(
+        vector_search=vector_index.search,
+        bm25_search=bm25_index.search,
+    )
+    return hybrid.search
+
+
+def run_pipeline(config_path: str | Path, strategy: str | None = None) -> dict:
     cfg = load_config(config_path)
     started = time.perf_counter()
+    strategy = strategy or cfg["retrieval"].get("strategy", "vector")
 
     docs = load_documents(resolve_project_path(config_path, cfg["data"]["raw_dir"]))
     chunks = build_chunks(
@@ -167,19 +205,18 @@ def run_pipeline(config_path: str | Path) -> dict:
         cfg["ingestion"]["chunk_size"],
         cfg["ingestion"]["chunk_overlap"],
     )
-
-    index = RetrievalIndex(
-        embedder_name=cfg["retrieval"]["embedder"],
-        collection_name=cfg["retrieval"]["collection_name"],
-    )
-    index.index_chunks(chunks)
+    search = build_search(chunks, cfg, strategy=strategy)
 
     questions = load_questions(resolve_project_path(config_path, cfg["data"]["questions_file"]))
     return evaluate_questions(
         questions=questions,
-        search=index.search,
+        search=search,
         top_k=cfg["retrieval"]["top_k"],
         k=cfg["evaluation"]["k"],
-        config=str(config_path),
+        config={
+            "source": "standalone_index",
+            "config_path": str(config_path),
+            "strategy": strategy,
+        },
         started=started,
     )
