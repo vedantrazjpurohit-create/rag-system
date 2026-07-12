@@ -1,0 +1,13 @@
+categories:
+  factual_lookup:
+    description: Direct question whose answer appears explicitly in one chunk.
+  paraphrased_factual:
+    description: Same fact requested with wording that differs from the source text.
+  multi_hop:
+    description: Requires combining evidence from multiple chunks or documents.
+  ambiguous:
+    description: Underspecified query where multiple interpretations are plausible.
+  exact_term_acronym:
+    description: Depends on exact keywords, acronyms, version strings, or symbols.
+  out_of_domain:
+    description: Query should not be answerable from the indexed corpus.

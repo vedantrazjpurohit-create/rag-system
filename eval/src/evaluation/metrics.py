@@ -25,8 +25,11 @@ def ndcg_at_k(retrieved_doc_ids: list[str], gold_doc_ids: list[str], k: int) -> 
 
     gold = set(gold_doc_ids)
     dcg = 0.0
+    seen_hits: set[str] = set()
     for rank, doc_id in enumerate(retrieved_doc_ids[:k], start=1):
-        rel = 1.0 if doc_id in gold else 0.0
+        rel = 1.0 if doc_id in gold and doc_id not in seen_hits else 0.0
+        if rel:
+            seen_hits.add(doc_id)
         dcg += rel / math.log2(rank + 1)
 
     ideal_hits = min(len(gold_doc_ids), k)

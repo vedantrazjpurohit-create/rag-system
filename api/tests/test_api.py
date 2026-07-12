@@ -80,11 +80,19 @@ def test_eval_endpoint_matches_standalone_pipeline(monkeypatch, tmp_path):
     ]
     for key in score_keys:
         assert body["metrics"][key] == baseline["metrics"][key]
+    for category, expected in baseline["metrics_by_category"].items():
+        actual_metrics = body["metrics_by_category"][category]["metrics"]
+        for key in score_keys:
+            assert actual_metrics[key] == expected["metrics"][key]
 
     history_lines = api_main.HISTORY_PATH.read_text(encoding="utf-8").splitlines()
     assert len(history_lines) == 1
     history_record = json.loads(history_lines[0])
     assert history_record["metrics"]["retrieval.recall_at_k"] == baseline["metrics"]["retrieval.recall_at_k"]
+    for category, expected in baseline["metrics_by_category"].items():
+        actual_metrics = history_record["metrics_by_category"][category]["metrics"]
+        for key in score_keys:
+            assert actual_metrics[key] == expected["metrics"][key]
 
     history = client.get("/eval/history")
     assert history.status_code == 200

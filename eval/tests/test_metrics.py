@@ -25,6 +25,12 @@ def test_ndcg_at_k_partial_credit():
     assert 0.0 < score < 1.0
 
 
+def test_ndcg_at_k_does_not_double_count_duplicate_doc_hits():
+    retrieved = ["doc_a", "doc_a", "doc_a"]
+    gold = ["doc_a"]
+    assert ndcg_at_k(retrieved, gold, k=3) == 1.0
+
+
 def test_faithfulness_supported_claim():
     answer = "Smaller chunks improved recall on the test set."
     contexts = ["When chunk size was reduced to 256 tokens, recall improved on the test question set."]

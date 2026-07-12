@@ -5,4 +5,5 @@ __pycache__/
 .chroma/
 results/*.json
 !results/sample_run.json
+!results/baseline_by_category.json
 !.gitkeep

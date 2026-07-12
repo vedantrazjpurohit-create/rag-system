@@ -14,6 +14,13 @@ from src.ingestion.loaders import load_documents
 from src.retrieval.index import RetrievalIndex, stable_chunk_id
 
 SearchFn = Callable[[str, int], list[Any]]
+SCORE_KEYS = [
+    "retrieval.recall_at_k",
+    "retrieval.mrr",
+    "retrieval.ndcg_at_k",
+    "gen.faithfulness",
+    "gen.citation_coverage",
+]
 
 
 def load_config(path: str | Path) -> dict:
@@ -85,45 +92,68 @@ def evaluate_questions(
     started: float | None = None,
 ) -> dict:
     started = started if started is not None else time.perf_counter()
-    recall_scores: list[float] = []
-    mrr_scores: list[float] = []
-    ndcg_scores: list[float] = []
-    faith_scores: list[float] = []
-    citation_scores: list[float] = []
-    latencies: list[float] = []
+    score_rows: list[dict] = []
 
     for item in questions:
         t0 = time.perf_counter()
         hits = search(item["question"], top_k)
-        latencies.append((time.perf_counter() - t0) * 1000)
+        latency_ms = (time.perf_counter() - t0) * 1000
 
         retrieved_doc_ids = [str(_hit_value(hit, "doc_id")) for hit in hits]
-        recall_scores.append(recall_at_k(retrieved_doc_ids, item["gold_doc_ids"], k))
-        mrr_scores.append(mrr(retrieved_doc_ids, item["gold_doc_ids"]))
-        ndcg_scores.append(ndcg_at_k(retrieved_doc_ids, item["gold_doc_ids"], k))
-
         answer = generate_answer(item["question"], hits)
         contexts = [str(_hit_value(hit, "text")) for hit in hits]
-        faith_scores.append(faithfulness(answer, contexts))
-        citation_scores.append(citation_coverage(answer, contexts))
 
+        score_rows.append(
+            {
+                "id": item.get("id"),
+                "category": item.get("category", "uncategorized"),
+                "latency_ms": latency_ms,
+                "retrieval.recall_at_k": recall_at_k(retrieved_doc_ids, item["gold_doc_ids"], k),
+                "retrieval.mrr": mrr(retrieved_doc_ids, item["gold_doc_ids"]),
+                "retrieval.ndcg_at_k": ndcg_at_k(retrieved_doc_ids, item["gold_doc_ids"], k),
+                "gen.faithfulness": faithfulness(answer, contexts),
+                "gen.citation_coverage": citation_coverage(answer, contexts),
+            }
+        )
+
+    aggregate_metrics = _summarize_score_rows(score_rows)
+    aggregate_metrics["runtime.total_s"] = round(time.perf_counter() - started, 2)
+
+    return {
+        "config": config,
+        "num_questions": len(questions),
+        "metrics": aggregate_metrics,
+        "metrics_by_category": _summarize_by_category(score_rows),
+    }
+
+
+def _summarize_score_rows(score_rows: list[dict]) -> dict:
+    latencies = sorted(row["latency_ms"] for row in score_rows)
     latencies.sort()
     p50 = latencies[len(latencies) // 2] if latencies else 0.0
     p95 = latencies[int(len(latencies) * 0.95)] if latencies else 0.0
 
     return {
-        "config": config,
-        "num_questions": len(questions),
-        "metrics": {
-            "retrieval.recall_at_k": round(sum(recall_scores) / max(1, len(recall_scores)), 3),
-            "retrieval.mrr": round(sum(mrr_scores) / max(1, len(mrr_scores)), 3),
-            "retrieval.ndcg_at_k": round(sum(ndcg_scores) / max(1, len(ndcg_scores)), 3),
-            "gen.faithfulness": round(sum(faith_scores) / max(1, len(faith_scores)), 3),
-            "gen.citation_coverage": round(sum(citation_scores) / max(1, len(citation_scores)), 3),
-            "latency.p50_ms": round(p50, 1),
-            "latency.p95_ms": round(p95, 1),
-            "runtime.total_s": round(time.perf_counter() - started, 2),
+        **{
+            key: round(sum(row[key] for row in score_rows) / max(1, len(score_rows)), 3)
+            for key in SCORE_KEYS
         },
+        "latency.p50_ms": round(p50, 1),
+        "latency.p95_ms": round(p95, 1),
+    }
+
+
+def _summarize_by_category(score_rows: list[dict]) -> dict:
+    grouped: dict[str, list[dict]] = {}
+    for row in score_rows:
+        grouped.setdefault(row["category"], []).append(row)
+
+    return {
+        category: {
+            "num_questions": len(rows),
+            "metrics": _summarize_score_rows(rows),
+        }
+        for category, rows in sorted(grouped.items())
     }
 
 

@@ -33,6 +33,7 @@ class QueryRequest(BaseModel):
 
 class EvalQuestion(BaseModel):
     id: str | None = None
+    category: str = "uncategorized"
     question: str = Field(min_length=3)
     gold_doc_ids: list[str] = Field(default_factory=list)
     gold_answer: str | None = None
@@ -144,6 +145,7 @@ def _append_eval_history(results: dict) -> None:
     record = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "metrics": results["metrics"],
+        "metrics_by_category": results["metrics_by_category"],
         "config": results["config"],
         "num_questions": results["num_questions"],
     }
