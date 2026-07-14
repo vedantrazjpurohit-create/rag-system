@@ -1,4 +1,4 @@
-.PHONY: install test bench chart api
+.PHONY: install test bench chart api web web-build
 
 PYTHON := .venv/Scripts/python.exe
 export HF_HOME := $(CURDIR)/.hf_cache
@@ -14,3 +14,9 @@ bench:
 
 api:
 	$(PYTHON) -m uvicorn api.app.main:app --reload --app-dir api
+
+web:
+	cd web && npm run dev
+
+web-build:
+	cd web && npm run build

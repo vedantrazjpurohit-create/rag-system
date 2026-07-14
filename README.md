@@ -22,8 +22,26 @@ pip install -r requirements.txt
 
 $env:HF_HOME = "$PWD\.hf_cache"
 .\.venv\Scripts\python.exe -m pytest api/tests eval/tests -q
+```
+
+### Full-stack (API + web UI)
+
+Terminal 1 — backend:
+
+```powershell
 .\.venv\Scripts\uvicorn.exe api.app.main:app --reload --app-dir api
 ```
+
+Terminal 2 — frontend:
+
+```powershell
+cd web
+copy .env.local.example .env.local
+npm install
+npm run dev
+```
+
+Open **http://localhost:3000** — upload docs, query with strategy selector, view retrieved chunks. **Safety Lab** tab shows adversarial before/after results.
 
 | Endpoint | What it does |
 |----------|--------------|
@@ -98,6 +116,7 @@ Full write-up (methodology, errors we hit, remaining gaps): **[eval/ADVERSARIAL_
 | Path | Role |
 |------|------|
 | `api/` | FastAPI service |
+| `web/` | Next.js frontend (chat, upload, Safety Lab) |
 | `eval/` | Benchmark harness, BM25/hybrid/router |
 | `eval/results/` | Benchmark + adversarial failure artifacts |
 | `eval/data/adversarial_questions.jsonl` | 22 failure-mode probes |

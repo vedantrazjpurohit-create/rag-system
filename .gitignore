@@ -13,3 +13,6 @@ api/chroma/
 eval/chroma/
 eval/results/run_*.json
 results/history.jsonl
+web/node_modules/
+web/.next/
+web/.env.local

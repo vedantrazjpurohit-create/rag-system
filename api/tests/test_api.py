@@ -111,6 +111,39 @@ def test_eval_endpoint_matches_standalone_pipeline(monkeypatch, tmp_path):
     assert history.json()["runs"][0]["metrics"] == history_record["metrics"]
 
 
+def test_documents_list_and_delete():
+    api_main.engine.reset()
+    payload = "Chunk size 1024 was the first baseline experiment."
+    files = {"file": ("baseline_chunks.md", io.BytesIO(payload.encode()), "text/plain")}
+    ingest = client.post("/ingest", files=files)
+    assert ingest.status_code == 200
+    doc_id = ingest.json()["doc_id"]
+
+    docs = client.get("/documents")
+    assert docs.status_code == 200
+    body = docs.json()
+    assert len(body["documents"]) == 1
+    assert body["documents"][0]["doc_id"] == doc_id
+    assert body["documents"][0]["chunk_count"] >= 1
+    assert body["documents"][0]["trust_tier"] == "trusted"
+
+    deleted = client.delete(f"/documents/{doc_id}")
+    assert deleted.status_code == 200
+    assert deleted.json()["stats"]["chunk_count"] == 0
+
+    missing = client.delete("/documents/doc_missing")
+    assert missing.status_code == 404
+
+
+def test_adversarial_summary_endpoint():
+    response = client.get("/adversarial/summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert "baseline" in body
+    assert "guarded" in body
+    assert "delta_pass_rate" in body
+
+
 def test_query_rejects_unknown_strategy():
     response = client.post(
         "/query",

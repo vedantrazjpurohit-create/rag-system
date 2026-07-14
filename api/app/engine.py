@@ -117,23 +117,41 @@ class RagEngine:
 
     def stats(self) -> dict:
         count = self.collection.count()
-        sources: set[str] = set()
-        doc_ids: set[str] = set()
-        if count:
-            batch = self.collection.get(include=["metadatas"])
-            for meta in batch.get("metadatas") or []:
-                if not meta:
-                    continue
-                if "source" in meta:
-                    sources.add(str(meta["source"]))
-                if "doc_id" in meta:
-                    doc_ids.add(str(meta["doc_id"]))
+        documents = self.list_documents()
         return {
             "chunk_count": count,
-            "source_count": len(sources),
-            "sources": sorted(sources),
-            "doc_ids": sorted(doc_ids),
+            "source_count": len(documents),
+            "sources": sorted(doc["source"] for doc in documents),
+            "doc_ids": sorted(doc["doc_id"] for doc in documents),
         }
+
+    def list_documents(self) -> list[dict]:
+        grouped: dict[str, dict] = {}
+        for chunk in self._chunks_by_id.values():
+            doc_id = str(chunk["doc_id"])
+            source = str(chunk["source"])
+            if doc_id not in grouped:
+                grouped[doc_id] = {
+                    "doc_id": doc_id,
+                    "source": source,
+                    "chunk_count": 0,
+                    "trust_tier": str(chunk.get("trust_tier", "trusted")),
+                }
+            grouped[doc_id]["chunk_count"] += 1
+        return sorted(grouped.values(), key=lambda doc: doc["source"])
+
+    def delete_document(self, doc_id: str) -> bool:
+        chunk_ids = [cid for cid, chunk in self._chunks_by_id.items() if str(chunk["doc_id"]) == doc_id]
+        if not chunk_ids:
+            return False
+
+        source = str(self._chunks_by_id[chunk_ids[0]]["source"])
+        self.collection.delete(ids=chunk_ids)
+        for chunk_id in chunk_ids:
+            self._chunks_by_id.pop(chunk_id, None)
+        self._source_doc_ids.pop(source, None)
+        self._bm25.index_chunks(list(self._chunks_by_id.values()))
+        return True
 
     def query(self, question: str, top_k: int = 5, strategy: str = "vector") -> QueryResult:
         started = time.perf_counter()

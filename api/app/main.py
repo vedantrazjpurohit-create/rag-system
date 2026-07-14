@@ -6,7 +6,10 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import os
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -22,8 +25,20 @@ from src.pipeline import evaluate_questions, load_questions  # noqa: E402
 DEFAULT_QUESTIONS_PATH = EVAL_ROOT / "data" / "questions.jsonl"
 HISTORY_PATH = ROOT / "results" / "history.jsonl"
 
-app = FastAPI(title="rag-system", version="0.2.0")
+app = FastAPI(title="rag-system", version="0.3.0")
 engine = RagEngine()
+
+_cors_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+).split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in _cors_origins if origin.strip()],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class QueryRequest(BaseModel):
@@ -56,6 +71,26 @@ def health() -> dict:
 @app.get("/stats")
 def stats() -> dict:
     return engine.stats()
+
+
+@app.get("/documents")
+def list_documents() -> dict:
+    return {"documents": engine.list_documents()}
+
+
+@app.delete("/documents/{doc_id}")
+def delete_document(doc_id: str) -> dict:
+    if not engine.delete_document(doc_id):
+        raise HTTPException(status_code=404, detail=f"Document not found: {doc_id}")
+    return {"deleted": doc_id, "stats": engine.stats()}
+
+
+@app.get("/adversarial/summary")
+def adversarial_summary() -> dict:
+    comparison_path = EVAL_ROOT / "results" / "failure_analysis_comparison.json"
+    if not comparison_path.exists():
+        raise HTTPException(status_code=404, detail="Adversarial comparison artifact not found")
+    return json.loads(comparison_path.read_text(encoding="utf-8"))
 
 
 @app.post("/ingest")
