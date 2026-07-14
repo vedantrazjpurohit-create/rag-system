@@ -1,6 +1,6 @@
 "use client";
 
-type Tab = "demo" | "safety";
+type Tab = "demo" | "eval" | "safety";
 
 interface HeaderProps {
   activeTab: Tab;
@@ -35,6 +35,17 @@ export function Header({ activeTab, onTabChange, apiOnline }: HeaderProps) {
             }`}
           >
             Demo
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange("eval")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition sm:text-sm ${
+              activeTab === "eval"
+                ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Eval
           </button>
           <button
             type="button"

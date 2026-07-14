@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { queryDocuments } from "@/lib/api";
+import { getAppConfig, queryDocuments } from "@/lib/api";
 import type { QueryResponse, Strategy } from "@/lib/types";
 
 import { ContextCard } from "./ContextCard";
@@ -22,6 +22,7 @@ interface ChatMessage {
 
 export function ChatPanel() {
   const [strategy, setStrategy] = useState<Strategy>("router");
+  const [llmEnabled, setLlmEnabled] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,12 @@ export function ChatPanel() {
     },
   ]);
   const [lastResponse, setLastResponse] = useState<QueryResponse | null>(null);
+
+  useEffect(() => {
+    getAppConfig()
+      .then((cfg) => setLlmEnabled(cfg.llm_enabled))
+      .catch(() => setLlmEnabled(false));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,6 +71,11 @@ export function ChatPanel() {
     <div className="flex h-full min-h-[520px] flex-col gap-4 lg:flex-row">
       <section className="flex min-w-0 flex-1 flex-col rounded-xl border border-slate-800 bg-slate-900/50">
         <div className="border-b border-slate-800 px-4 py-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] text-slate-500">
+              Answers: {llmEnabled ? "Grok LLM (xAI)" : "template (set XAI_API_KEY for LLM)"}
+            </span>
+          </div>
           <div className="flex flex-wrap gap-2">
             {STRATEGIES.map((item) => (
               <button
@@ -96,8 +108,8 @@ export function ChatPanel() {
               {msg.content}
               {msg.meta && (
                 <p className="mt-2 font-mono text-[10px] text-slate-500">
-                  {msg.meta.strategy} · retrieve {msg.meta.timing_ms.retrieve}ms · total{" "}
-                  {msg.meta.timing_ms.total}ms
+                  {msg.meta.strategy} · {msg.meta.answer_mode} · retrieve{" "}
+                  {msg.meta.timing_ms.retrieve}ms · gen {msg.meta.timing_ms.generate}ms
                 </p>
               )}
             </div>

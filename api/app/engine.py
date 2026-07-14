@@ -27,6 +27,8 @@ from src.retrieval.hybrid import HybridRetriever  # noqa: E402
 from src.retrieval.index import SearchResult  # noqa: E402
 from src.retrieval.router import AdaptiveQueryRouter  # noqa: E402
 
+from app.llm import generate_answer  # noqa: E402
+
 SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid", "router"}
 
 
@@ -35,7 +37,9 @@ class QueryResult:
     answer: str
     contexts: list[dict]
     retrieve_ms: float
+    generate_ms: float
     total_ms: float
+    answer_mode: str
 
 
 class RagEngine:
@@ -160,14 +164,24 @@ class RagEngine:
         contexts = self.search_contexts(question, top_k=top_k, strategy=strategy)
         retrieve_ms = (time.perf_counter() - t0) * 1000
 
-        if not contexts:
-            answer = REFUSAL_ANSWER if self.collection.count() else "No indexed context found. Ingest a document first."
+        if not contexts and not self.collection.count():
+            answer = "No indexed context found. Ingest a document first."
+            answer_mode = "template"
+            generate_ms = 0.0
         else:
-            lead = contexts[0]["text"].replace("\n", " ")[:220]
-            answer = f"Top match suggests: {lead}"
+            t1 = time.perf_counter()
+            answer, answer_mode = generate_answer(question, contexts)
+            generate_ms = (time.perf_counter() - t1) * 1000
 
         total_ms = (time.perf_counter() - started) * 1000
-        return QueryResult(answer=answer, contexts=contexts, retrieve_ms=retrieve_ms, total_ms=total_ms)
+        return QueryResult(
+            answer=answer,
+            contexts=contexts,
+            retrieve_ms=retrieve_ms,
+            generate_ms=generate_ms,
+            total_ms=total_ms,
+            answer_mode=answer_mode,
+        )
 
     def search_contexts(self, question: str, top_k: int = 5, strategy: str = "vector") -> list[dict]:
         if strategy not in SUPPORTED_STRATEGIES:

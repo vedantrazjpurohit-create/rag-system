@@ -135,6 +135,43 @@ def test_documents_list_and_delete():
     assert missing.status_code == 404
 
 
+def test_config_endpoint():
+    response = client.get("/config")
+    assert response.status_code == 200
+    body = response.json()
+    assert "llm_enabled" in body
+    assert "strategies" in body
+    assert "vector" in body["strategies"]
+
+
+def test_benchmarks_summary_endpoint():
+    response = client.get("/benchmarks/summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert "vector" in body
+    assert body["vector"]["metrics"]["retrieval.recall_at_k"] == 1.0
+
+
+def test_eval_compare_endpoint(monkeypatch, tmp_path):
+    api_main.engine.reset()
+    monkeypatch.setattr(api_main, "HISTORY_PATH", tmp_path / "history.jsonl")
+
+    for filename in ("baseline_chunks.md", "smaller_chunks_experiment.md"):
+        corpus_path = Path("eval/data/raw") / filename
+        corpus = corpus_path.read_text(encoding="utf-8")
+        files = {"file": (filename, io.BytesIO(corpus.encode()), "text/plain")}
+        ingest = client.post("/ingest", files=files)
+        assert ingest.status_code == 200
+
+    response = client.post("/eval/compare", json={"top_k": 5, "k": 5})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["num_questions"] == 2
+    for strategy in ("vector", "bm25", "hybrid", "router"):
+        assert strategy in body["strategies"]
+        assert body["strategies"][strategy]["metrics"]["retrieval.recall_at_k"] == 1.0
+
+
 def test_adversarial_summary_endpoint():
     response = client.get("/adversarial/summary")
     assert response.status_code == 200

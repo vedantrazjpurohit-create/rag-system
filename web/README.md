@@ -22,6 +22,7 @@ Open http://localhost:3000
 | Tab | Features |
 |-----|----------|
 | **Demo** | File upload, document list, chat with strategy selector, retrieved context panel |
+| **Eval** | Strategy metric bars, live 4-strategy compare, eval history |
 | **Safety Lab** | Adversarial before/after pass rates from `/adversarial/summary` |
 
 ## Env

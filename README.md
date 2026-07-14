@@ -41,7 +41,28 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:3000** — upload docs, query with strategy selector, view retrieved chunks. **Safety Lab** tab shows adversarial before/after results.
+Open **http://localhost:3000** — upload docs, query with strategy selector, view retrieved chunks.
+
+| Tab | Features |
+|-----|----------|
+| **Demo** | Upload, chat, retrieved contexts |
+| **Eval** | Strategy comparison charts, live eval, history |
+| **Safety Lab** | Adversarial before/after pass rates |
+
+### Optional: Grok LLM answers
+
+Set `XAI_API_KEY` (from https://console.x.ai) to switch from template answers to Grok:
+
+```powershell
+$env:XAI_API_KEY = "your-key"
+.\.venv\Scripts\uvicorn.exe api.app.main:app --reload --app-dir api
+```
+
+### Docker (API + web)
+
+```powershell
+docker compose up --build
+```
 
 | Endpoint | What it does |
 |----------|--------------|

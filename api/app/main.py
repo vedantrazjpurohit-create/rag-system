@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from app import llm
 from app.engine import RagEngine, SUPPORTED_STRATEGIES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -68,6 +69,15 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/config")
+def app_config() -> dict:
+    return {
+        "llm_enabled": llm.is_enabled(),
+        "llm_model": llm.model_name(),
+        "strategies": sorted(SUPPORTED_STRATEGIES),
+    }
+
+
 @app.get("/stats")
 def stats() -> dict:
     return engine.stats()
@@ -83,6 +93,14 @@ def delete_document(doc_id: str) -> dict:
     if not engine.delete_document(doc_id):
         raise HTTPException(status_code=404, detail=f"Document not found: {doc_id}")
     return {"deleted": doc_id, "stats": engine.stats()}
+
+
+@app.get("/benchmarks/summary")
+def benchmarks_summary() -> dict:
+    summary_path = EVAL_ROOT / "results" / "hybrid_by_category.json"
+    if not summary_path.exists():
+        raise HTTPException(status_code=404, detail="Benchmark summary artifact not found")
+    return json.loads(summary_path.read_text(encoding="utf-8"))
 
 
 @app.get("/adversarial/summary")
@@ -118,8 +136,10 @@ def query(payload: QueryRequest):
         "answer": result.answer,
         "contexts": result.contexts,
         "strategy": strategy,
+        "answer_mode": result.answer_mode,
         "timing_ms": {
             "retrieve": round(result.retrieve_ms, 2),
+            "generate": round(result.generate_ms, 2),
             "total": round(result.total_ms, 2),
         },
     }
@@ -164,6 +184,42 @@ def run_eval(payload: EvalRequest | None = None) -> dict:
         _append_eval_history(results)
 
     return results
+
+
+@app.post("/eval/compare")
+def eval_compare(payload: EvalRequest | None = None) -> dict:
+    payload = payload or EvalRequest()
+    if engine.stats()["chunk_count"] == 0:
+        raise HTTPException(status_code=422, detail="Ingest documents before running eval")
+
+    questions = _eval_questions(payload)
+    comparison: dict[str, dict] = {}
+    for strategy in sorted(SUPPORTED_STRATEGIES):
+        _validate_strategy(strategy)
+        started = time.perf_counter()
+        comparison[strategy] = evaluate_questions(
+            questions=questions,
+            search=lambda question, top_k, s=strategy: engine.search_contexts(
+                question,
+                top_k=top_k,
+                strategy=s,
+            ),
+            top_k=payload.top_k,
+            k=payload.k,
+            config={
+                "source": "live_api_index",
+                "strategy": strategy,
+                "top_k": payload.top_k,
+                "k": payload.k,
+                "questions": len(questions),
+            },
+            started=started,
+        )
+
+    return {
+        "num_questions": len(questions),
+        "strategies": comparison,
+    }
 
 
 @app.get("/eval/history")

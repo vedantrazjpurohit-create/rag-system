@@ -1,5 +1,7 @@
 import type {
   AdversarialComparison,
+  AppConfig,
+  BenchmarkComparison,
   DocumentInfo,
   IngestResponse,
   QueryResponse,
@@ -54,6 +56,29 @@ export function deleteDocument(docId: string): Promise<{ deleted: string; stats:
 
 export function getAdversarialSummary(): Promise<AdversarialComparison> {
   return request("/adversarial/summary");
+}
+
+export function getAppConfig(): Promise<AppConfig> {
+  return request("/config");
+}
+
+export function getBenchmarksSummary(): Promise<BenchmarkComparison> {
+  return request("/benchmarks/summary");
+}
+
+export function runEvalCompare(): Promise<{
+  num_questions: number;
+  strategies: BenchmarkComparison;
+}> {
+  return request("/eval/compare", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ persist: true }),
+  });
+}
+
+export function getEvalHistory(limit = 20): Promise<{ runs: import("./types").EvalHistoryRun[] }> {
+  return request(`/eval/history?limit=${limit}`);
 }
 
 export { API_BASE };

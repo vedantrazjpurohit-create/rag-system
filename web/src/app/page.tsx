@@ -5,12 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Header } from "@/components/Header";
+import { EvalDashboard } from "@/components/EvalDashboard";
 import { SafetyLab } from "@/components/SafetyLab";
 import { UploadPanel } from "@/components/UploadPanel";
 import { deleteDocument, getHealth, listDocuments } from "@/lib/api";
 import type { DocumentInfo } from "@/lib/types";
 
-type Tab = "demo" | "safety";
+type Tab = "demo" | "eval" | "safety";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("demo");
@@ -63,7 +64,7 @@ export default function Home() {
           </div>
         )}
 
-        {tab === "demo" ? (
+        {tab === "demo" && (
           <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
             <aside className="space-y-4">
               <UploadPanel onUploaded={refreshDocuments} />
@@ -75,9 +76,9 @@ export default function Home() {
             </aside>
             <ChatPanel />
           </div>
-        ) : (
-          <SafetyLab />
         )}
+        {tab === "eval" && <EvalDashboard />}
+        {tab === "safety" && <SafetyLab />}
       </main>
     </div>
   );

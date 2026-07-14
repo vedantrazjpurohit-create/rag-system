@@ -26,10 +26,46 @@ export interface QueryResponse {
   answer: string;
   contexts: RetrievedContext[];
   strategy: Strategy;
+  answer_mode: "llm" | "template" | string;
   timing_ms: {
     retrieve: number;
+    generate: number;
     total: number;
   };
+}
+
+export interface EvalMetrics {
+  "retrieval.recall_at_k": number;
+  "retrieval.mrr": number;
+  "retrieval.ndcg_at_k": number;
+  "gen.faithfulness": number;
+  "gen.citation_coverage": number;
+  "latency.p50_ms"?: number;
+  "latency.p95_ms"?: number;
+  "runtime.total_s"?: number;
+}
+
+export interface StrategyEvalResult {
+  config: Record<string, unknown>;
+  num_questions: number;
+  metrics: EvalMetrics;
+  metrics_by_category: Record<string, { num_questions: number; metrics: EvalMetrics }>;
+}
+
+export type BenchmarkComparison = Record<Strategy, StrategyEvalResult>;
+
+export interface EvalHistoryRun {
+  timestamp: string;
+  metrics: EvalMetrics;
+  metrics_by_category: Record<string, unknown>;
+  config: Record<string, unknown>;
+  num_questions: number;
+}
+
+export interface AppConfig {
+  llm_enabled: boolean;
+  llm_model: string | null;
+  strategies: Strategy[];
 }
 
 export interface IngestResponse {
