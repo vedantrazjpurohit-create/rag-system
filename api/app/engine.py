@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import chromadb
-from sentence_transformers import SentenceTransformer
+
+from app.embedder import create_embedder
 
 EVAL_ROOT = Path(__file__).resolve().parents[2] / "eval"
 if str(EVAL_ROOT) not in sys.path:
@@ -44,9 +45,9 @@ class QueryResult:
 
 
 class RagEngine:
-    def __init__(self, embedder: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, embedder: str | None = None):
         self.collection_name = "rag_api"
-        self.model = SentenceTransformer(embedder)
+        self.model = create_embedder(model_name=embedder)
         self.chroma_path = Path(
             os.environ.get("CHROMA_PATH", str(EVAL_ROOT.parent / "data" / "chroma"))
         )
@@ -92,7 +93,7 @@ class RagEngine:
         ids = []
         docs = []
         metas = []
-        embeddings = self.model.encode(chunks, show_progress_bar=False).tolist()
+        embeddings = self.model.encode(chunks)
 
         for idx, chunk in enumerate(chunks):
             chunk_id = _stable_id(source, idx, chunk)
@@ -266,7 +267,7 @@ class RagEngine:
         if count == 0:
             return []
 
-        query_vec = self.model.encode([question], show_progress_bar=False).tolist()
+        query_vec = self.model.encode([question])
         hits = self.collection.query(query_embeddings=query_vec, n_results=min(top_k, count))
 
         hits_out: list[SearchResult] = []

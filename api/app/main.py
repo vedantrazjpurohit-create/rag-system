@@ -29,7 +29,21 @@ DEFAULT_QUESTIONS_PATH = EVAL_ROOT / "data" / "questions.jsonl"
 HISTORY_PATH = ROOT / "results" / "history.jsonl"
 
 app = FastAPI(title="rag-system", version="0.3.0")
-engine = RagEngine()
+
+
+class _LazyEngine:
+    _instance: RagEngine | None = None
+
+    def _get(self) -> RagEngine:
+        if self._instance is None:
+            self._instance = RagEngine()
+        return self._instance
+
+    def __getattr__(self, name: str):
+        return getattr(self._get(), name)
+
+
+engine = _LazyEngine()
 
 _allow_origins, _allow_origin_regex = cors_settings()
 app.add_middleware(
@@ -66,7 +80,10 @@ class EvalRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "engine_loaded": _LazyEngine._instance is not None,
+    }
 
 
 @app.get("/config")
@@ -77,6 +94,7 @@ def app_config() -> dict:
         "strategies": sorted(SUPPORTED_STRATEGIES),
         "persistence_enabled": True,
         "chroma_path": str(engine.chroma_path),
+        "embedder_backend": os.environ.get("EMBEDDER_BACKEND", "sentence_transformers"),
     }
 
 

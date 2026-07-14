@@ -19,6 +19,10 @@ services:
         value: http://127.0.0.1:8000
       - key: ALLOW_VERCEL_PREVIEWS
         value: "true"
+      - key: EMBEDDER_BACKEND
+        value: fastembed
+      - key: EMBEDDER_MODEL
+        value: BAAI/bge-small-en-v1.5
       - key: XAI_API_KEY
         sync: false
       - key: XAI_MODEL
