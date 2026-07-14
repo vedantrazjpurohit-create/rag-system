@@ -1,23 +1,16 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
 
 import chromadb
-from sentence_transformers import SentenceTransformer
 
-
-@dataclass
-class SearchResult:
-    chunk_id: str
-    doc_id: str
-    text: str
-    score: float
-    source: str = ""
+from src.retrieval.types import SearchResult
 
 
 class RetrievalIndex:
     def __init__(self, embedder_name: str, collection_name: str):
+        from sentence_transformers import SentenceTransformer
+
         self.model = SentenceTransformer(embedder_name)
         self.client = chromadb.Client()
         self.collection = self.client.get_or_create_collection(name=collection_name)

@@ -26,7 +26,7 @@ from src.retrieval.guard import (  # noqa: E402
     trust_tier_for_source,
 )
 from src.retrieval.hybrid import HybridRetriever  # noqa: E402
-from src.retrieval.index import SearchResult  # noqa: E402
+from src.retrieval.types import SearchResult  # noqa: E402
 from src.retrieval.router import AdaptiveQueryRouter  # noqa: E402
 
 from app.llm import generate_answer  # noqa: E402

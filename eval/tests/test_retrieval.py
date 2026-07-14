@@ -1,6 +1,6 @@
 from src.retrieval.bm25 import BM25Index
 from src.retrieval.hybrid import reciprocal_rank_fusion
-from src.retrieval.index import SearchResult
+from src.retrieval.types import SearchResult
 from src.retrieval.router import AdaptiveQueryRouter
 
 

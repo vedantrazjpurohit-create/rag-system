@@ -4,7 +4,7 @@ import math
 import re
 from collections import Counter
 
-from src.retrieval.index import SearchResult
+from src.retrieval.types import SearchResult
 
 
 class BM25Index:

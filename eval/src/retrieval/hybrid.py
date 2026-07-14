@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from src.retrieval.index import SearchResult
+from src.retrieval.types import SearchResult
 
 SearchFn = Callable[[str, int], list[SearchResult]]
 

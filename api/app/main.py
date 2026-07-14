@@ -23,8 +23,6 @@ EVAL_ROOT = ROOT / "eval"
 if str(EVAL_ROOT) not in sys.path:
     sys.path.insert(0, str(EVAL_ROOT))
 
-from src.pipeline import evaluate_questions, load_questions  # noqa: E402
-
 DEFAULT_QUESTIONS_PATH = EVAL_ROOT / "data" / "questions.jsonl"
 HISTORY_PATH = ROOT / "results" / "history.jsonl"
 
@@ -229,6 +227,8 @@ def query_stream(payload: QueryRequest):
 
 @app.post("/eval")
 def run_eval(payload: EvalRequest | None = None) -> dict:
+    from src.pipeline import evaluate_questions  # noqa: E402
+
     payload = payload or EvalRequest()
     if engine.stats()["chunk_count"] == 0:
         raise HTTPException(status_code=422, detail="Ingest documents before running eval")
@@ -263,6 +263,8 @@ def run_eval(payload: EvalRequest | None = None) -> dict:
 
 @app.post("/eval/compare")
 def eval_compare(payload: EvalRequest | None = None) -> dict:
+    from src.pipeline import evaluate_questions  # noqa: E402
+
     payload = payload or EvalRequest()
     if engine.stats()["chunk_count"] == 0:
         raise HTTPException(status_code=422, detail="Ingest documents before running eval")
@@ -312,6 +314,8 @@ def eval_history(limit: int = 20) -> dict:
 
 
 def _eval_questions(payload: EvalRequest) -> list[dict]:
+    from src.pipeline import load_questions  # noqa: E402
+
     if payload.questions is not None:
         return [question.model_dump(exclude_none=True) for question in payload.questions]
     return load_questions(DEFAULT_QUESTIONS_PATH)
