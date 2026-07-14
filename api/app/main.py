@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app import llm
+from app.cors_config import cors_settings
 from app.engine import RagEngine, SUPPORTED_STRATEGIES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,13 +30,11 @@ HISTORY_PATH = ROOT / "results" / "history.jsonl"
 app = FastAPI(title="rag-system", version="0.3.0")
 engine = RagEngine()
 
-_cors_origins = os.environ.get(
-    "CORS_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
-).split(",")
+_allow_origins, _allow_origin_regex = cors_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in _cors_origins if origin.strip()],
+    allow_origins=_allow_origins,
+    allow_origin_regex=_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

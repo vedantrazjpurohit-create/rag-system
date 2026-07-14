@@ -64,6 +64,46 @@ $env:XAI_API_KEY = "your-key"
 docker compose up --build
 ```
 
+## Deploy (live demo)
+
+**Stack:** Render (API) + Vercel (web). Free tier works for demos; upgrade Render to Starter ($7/mo) if the embedder OOMs on 512MB.
+
+### 1. Deploy API on Render
+
+1. Go to [render.com](https://render.com) → **New** → **Blueprint**
+2. Connect `vedantrazjpurohit-create/rag-system`
+3. Render reads `render.yaml` and creates `rag-system-api`
+4. After deploy, copy the URL (e.g. `https://rag-system-api.onrender.com`)
+5. In Render **Environment**, set:
+   - `FRONTEND_URL` = your Vercel URL (after step 2)
+   - `XAI_API_KEY` = optional, for Grok answers
+
+Health check: `GET /health`
+
+### 2. Deploy web on Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project**
+2. Import `vedantrazjpurohit-create/rag-system`
+3. Set **Root Directory** = `web`
+4. Add environment variable:
+   - `NEXT_PUBLIC_API_URL` = your Render API URL
+5. Deploy → copy your Vercel URL (e.g. `https://rag-system.vercel.app`)
+
+### 3. Link them
+
+Back in Render, set `FRONTEND_URL` to your Vercel URL and redeploy. CORS also allows `*.vercel.app` previews automatically.
+
+### Verify
+
+| Check | URL |
+|-------|-----|
+| API health | `https://<api>/health` |
+| Live site | `https://<vercel>/` |
+| Safety Lab | adversarial charts load from API |
+| Eval tab | benchmarks + live eval |
+
+Add both URLs to your GitHub README and LinkedIn.
+
 | Endpoint | What it does |
 |----------|--------------|
 | `POST /ingest` | Upload text, chunk + index |
@@ -138,6 +178,8 @@ Full write-up (methodology, errors we hit, remaining gaps): **[eval/ADVERSARIAL_
 |------|------|
 | `api/` | FastAPI service |
 | `web/` | Next.js frontend (chat, upload, Safety Lab) |
+| `render.yaml` | Render Blueprint for API deploy |
+| `web/vercel.json` | Vercel build config (root dir = `web`) |
 | `eval/` | Benchmark harness, BM25/hybrid/router |
 | `eval/results/` | Benchmark + adversarial failure artifacts |
 | `eval/data/adversarial_questions.jsonl` | 22 failure-mode probes |

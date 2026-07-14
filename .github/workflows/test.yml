@@ -20,3 +20,20 @@ jobs:
         env:
           HF_HOME: ${{ github.workspace }}/.hf_cache
         run: python -m pytest api/tests eval/tests -q
+
+  web-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install and build
+        run: npm ci && npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://rag-system-api.onrender.com
