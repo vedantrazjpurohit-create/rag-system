@@ -66,6 +66,8 @@ export interface AppConfig {
   llm_enabled: boolean;
   llm_model: string | null;
   strategies: Strategy[];
+  persistence_enabled?: boolean;
+  chroma_path?: string;
 }
 
 export interface IngestResponse {

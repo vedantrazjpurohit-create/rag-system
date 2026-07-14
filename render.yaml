@@ -1,24 +1,24 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
-# Deploy: Render Dashboard → New → Blueprint → connect this repo
+# One-click public site: API + Next.js in a single container
+# Render Dashboard → New → Blueprint → connect repo → deploy
 services:
   - type: web
-    name: rag-system-api
+    name: rag-system
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.site
     dockerContext: .
     plan: free
-    healthCheckPath: /health
+    healthCheckPath: /api-proxy/health
     envVars:
       - key: HF_HOME
         value: /app/.hf_cache
       - key: PYTHONPATH
         value: /app/api:/app/eval
+      - key: CHROMA_PATH
+        value: /app/data/chroma
+      - key: API_PROXY_TARGET
+        value: http://127.0.0.1:8000
       - key: ALLOW_VERCEL_PREVIEWS
         value: "true"
-      - key: FRONTEND_URL
-        sync: false
-      - key: CORS_ORIGINS
-        sync: false
       - key: XAI_API_KEY
         sync: false
       - key: XAI_MODEL

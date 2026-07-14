@@ -10,6 +10,7 @@ __pycache__/
 htmlcov/
 *.egg-info/
 api/chroma/
+data/chroma/
 eval/chroma/
 eval/results/run_*.json
 results/history.jsonl

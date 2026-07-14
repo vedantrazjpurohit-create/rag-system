@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -46,13 +47,40 @@ class RagEngine:
     def __init__(self, embedder: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.collection_name = "rag_api"
         self.model = SentenceTransformer(embedder)
-        self.client = chromadb.Client()
+        self.chroma_path = Path(
+            os.environ.get("CHROMA_PATH", str(EVAL_ROOT.parent / "data" / "chroma"))
+        )
+        self.chroma_path.mkdir(parents=True, exist_ok=True)
+        self.client = chromadb.PersistentClient(path=str(self.chroma_path))
         self.collection = self.client.get_or_create_collection(self.collection_name)
         self._source_doc_ids: dict[str, str] = {}
         self._chunks_by_id: dict[str, dict] = {}
         self._bm25 = BM25Index()
         self._router = AdaptiveQueryRouter()
         self._guard = GuardConfig()
+        self._hydrate_from_collection()
+
+    def _hydrate_from_collection(self) -> None:
+        count = self.collection.count()
+        if not count:
+            return
+
+        batch = self.collection.get(include=["documents", "metadatas"])
+        for idx, chunk_id in enumerate(batch["ids"]):
+            meta = batch["metadatas"][idx] or {}
+            text = batch["documents"][idx]
+            source = str(meta.get("source", ""))
+            doc_id = str(meta.get("doc_id", ""))
+            self._chunks_by_id[chunk_id] = {
+                "id": chunk_id,
+                "doc_id": doc_id,
+                "source": source,
+                "text": text,
+                "trust_tier": trust_tier_for_source(source),
+            }
+            if source and doc_id:
+                self._source_doc_ids[source] = doc_id
+        self._bm25.index_chunks(list(self._chunks_by_id.values()))
 
     def ingest_text(self, text: str, source: str, doc_id: str | None = None) -> int:
         chunks = _chunk(text, 512, 64)
@@ -143,6 +171,21 @@ class RagEngine:
                 }
             grouped[doc_id]["chunk_count"] += 1
         return sorted(grouped.values(), key=lambda doc: doc["source"])
+
+    def seed_demo_corpus(self) -> dict:
+        raw_dir = EVAL_ROOT / "data" / "raw"
+        seeded = []
+        total_chunks = 0
+        for filename in ("baseline_chunks.md", "smaller_chunks_experiment.md"):
+            path = raw_dir / filename
+            if not path.exists():
+                continue
+            text = path.read_text(encoding="utf-8")
+            doc_id = self.doc_id_for_source(filename)
+            count = self.ingest_text(text, source=filename, doc_id=doc_id)
+            total_chunks += count
+            seeded.append({"source": filename, "doc_id": doc_id, "chunks_indexed": count})
+        return {"seeded": seeded, "total_chunks": total_chunks}
 
     def delete_document(self, doc_id: str) -> bool:
         chunk_ids = [cid for cid, chunk in self._chunks_by_id.items() if str(chunk["doc_id"]) == doc_id]

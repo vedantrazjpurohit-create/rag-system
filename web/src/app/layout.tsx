@@ -15,7 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "RAG System — Upload, Query, Measure",
   description:
-    "Full-stack RAG demo with vector, BM25, hybrid, and router retrieval plus adversarial safety eval.",
+    "Full-stack RAG with vector, BM25, hybrid, router retrieval, live eval, and adversarial safety testing.",
+  openGraph: {
+    title: "RAG System — Retrieval you can prove",
+    description: "Upload docs, compare strategies, stress-test with adversarial eval.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

@@ -135,6 +135,34 @@ def test_documents_list_and_delete():
     assert missing.status_code == 404
 
 
+def test_demo_seed_endpoint():
+    api_main.engine.reset()
+    response = client.post("/demo/seed")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_chunks"] >= 1
+    assert len(body["seeded"]) == 2
+    stats = client.get("/stats")
+    assert stats.json()["chunk_count"] >= 1
+
+
+def test_query_stream_endpoint():
+    api_main.engine.reset()
+    payload = "Chunk size 1024 was the baseline for retrieval experiments."
+    files = {"file": ("notes.txt", io.BytesIO(payload.encode()), "text/plain")}
+    client.post("/ingest", files=files)
+
+    response = client.post(
+        "/query/stream",
+        json={"question": "What chunk size was used?", "top_k": 3, "strategy": "vector"},
+    )
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+    body = response.text
+    assert "data:" in body
+    assert '"type": "done"' in body or '"type": "token"' in body
+
+
 def test_config_endpoint():
     response = client.get("/config")
     assert response.status_code == 200

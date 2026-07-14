@@ -1,6 +1,6 @@
 "use client";
 
-type Tab = "demo" | "eval" | "safety";
+type Tab = "demo" | "eval" | "safety" | "about";
 
 interface HeaderProps {
   activeTab: Tab;
@@ -56,7 +56,18 @@ export function Header({ activeTab, onTabChange, apiOnline }: HeaderProps) {
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            Safety Lab
+            Safety
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange("about")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition sm:text-sm ${
+              activeTab === "about"
+                ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            About
           </button>
         </nav>
 
@@ -73,14 +84,9 @@ export function Header({ activeTab, onTabChange, apiOnline }: HeaderProps) {
           <span className="hidden text-slate-500 sm:inline">
             API {apiOnline === null ? "checking…" : apiOnline ? "online" : "offline"}
           </span>
-          <a
-            href="https://github.com/vedantrazjpurohit-create/rag-system"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden rounded-md px-2 py-1 text-slate-400 ring-1 ring-slate-800 hover:text-slate-200 sm:inline"
-          >
-            GitHub
-          </a>
+          <span className="hidden rounded-md px-2 py-1 text-slate-500 ring-1 ring-slate-800 sm:inline">
+            Live
+          </span>
         </div>
       </div>
     </header>

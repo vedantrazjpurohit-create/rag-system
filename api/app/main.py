@@ -10,12 +10,13 @@ import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app import llm
 from app.cors_config import cors_settings
 from app.engine import RagEngine, SUPPORTED_STRATEGIES
+from app.extract import extract_upload_text
 
 ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = ROOT / "eval"
@@ -74,6 +75,8 @@ def app_config() -> dict:
         "llm_enabled": llm.is_enabled(),
         "llm_model": llm.model_name(),
         "strategies": sorted(SUPPORTED_STRATEGIES),
+        "persistence_enabled": True,
+        "chroma_path": str(engine.chroma_path),
     }
 
 
@@ -110,17 +113,25 @@ def adversarial_summary() -> dict:
     return json.loads(comparison_path.read_text(encoding="utf-8"))
 
 
+@app.post("/demo/seed")
+def seed_demo() -> dict:
+    engine.reset()
+    result = engine.seed_demo_corpus()
+    if not result["seeded"]:
+        raise HTTPException(status_code=404, detail="Demo corpus files not found")
+    return result
+
+
 @app.post("/ingest")
 async def ingest(file: UploadFile = File(...)) -> dict:
     raw = await file.read()
     if not raw.strip():
         raise HTTPException(status_code=422, detail="Uploaded file is empty")
 
-    text = raw.decode("utf-8", errors="ignore").strip()
+    source = file.filename or "upload"
+    text = extract_upload_text(raw, source)
     if not text:
         raise HTTPException(status_code=422, detail="Uploaded file has no readable text")
-
-    source = file.filename or "upload"
     doc_id = engine.doc_id_for_source(source)
     count = engine.ingest_text(text, source=source, doc_id=doc_id)
     return {"chunks_indexed": count, "source": source, "doc_id": doc_id}
@@ -149,6 +160,53 @@ def query(payload: QueryRequest):
             "X-Total-Ms": str(round(result.total_ms, 2)),
         },
     )
+
+
+@app.post("/query/stream")
+def query_stream(payload: QueryRequest):
+    strategy = payload.strategy or "router"
+    _validate_strategy(strategy)
+    started = time.perf_counter()
+
+    t0 = time.perf_counter()
+    contexts = engine.search_contexts(payload.question, top_k=payload.top_k, strategy=strategy)
+    retrieve_ms = (time.perf_counter() - t0) * 1000
+
+    def event_stream():
+        meta = {
+            "type": "meta",
+            "contexts": contexts,
+            "strategy": strategy,
+            "retrieve_ms": round(retrieve_ms, 2),
+        }
+        yield f"data: {json.dumps(meta)}\n\n"
+
+        from app.llm import stream_answer_tokens
+
+        answer_parts: list[str] = []
+        answer_mode = "template"
+        t1 = time.perf_counter()
+        for token, mode in stream_answer_tokens(payload.question, contexts):
+            if not answer_parts:
+                answer_mode = mode
+            answer_parts.append(token)
+            yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+
+        generate_ms = (time.perf_counter() - t1) * 1000
+        total_ms = (time.perf_counter() - started) * 1000
+        done = {
+            "type": "done",
+            "answer": "".join(answer_parts),
+            "answer_mode": answer_mode,
+            "timing_ms": {
+                "retrieve": round(retrieve_ms, 2),
+                "generate": round(generate_ms, 2),
+                "total": round(total_ms, 2),
+            },
+        }
+        yield f"data: {json.dumps(done)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/eval")

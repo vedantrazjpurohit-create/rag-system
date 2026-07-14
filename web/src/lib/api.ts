@@ -9,7 +9,9 @@ import type {
   Strategy,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (typeof window !== "undefined" ? "/api-proxy" : "http://127.0.0.1:8000");
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, init);
@@ -79,6 +81,70 @@ export function runEvalCompare(): Promise<{
 
 export function getEvalHistory(limit = 20): Promise<{ runs: import("./types").EvalHistoryRun[] }> {
   return request(`/eval/history?limit=${limit}`);
+}
+
+export function seedDemo(): Promise<{
+  seeded: { source: string; doc_id: string; chunks_indexed: number }[];
+  total_chunks: number;
+}> {
+  return request("/demo/seed", { method: "POST" });
+}
+
+export async function queryStream(
+  question: string,
+  strategy: Strategy,
+  handlers: {
+    onMeta: (data: { contexts: QueryResponse["contexts"]; strategy: Strategy; retrieve_ms: number }) => void;
+    onToken: (token: string) => void;
+    onDone: (data: Pick<QueryResponse, "answer" | "answer_mode" | "timing_ms" | "strategy">) => void;
+    onError: (message: string) => void;
+  },
+  topK = 5,
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/query/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, strategy, top_k: topK }),
+  });
+
+  if (!response.ok || !response.body) {
+    handlers.onError(await response.text());
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      const line = part.trim();
+      if (!line.startsWith("data: ")) continue;
+      const payload = JSON.parse(line.slice(6)) as Record<string, unknown>;
+      if (payload.type === "meta") {
+        handlers.onMeta({
+          contexts: payload.contexts as QueryResponse["contexts"],
+          strategy: payload.strategy as Strategy,
+          retrieve_ms: payload.retrieve_ms as number,
+        });
+      } else if (payload.type === "token") {
+        handlers.onToken(String(payload.content ?? ""));
+      } else if (payload.type === "done") {
+        handlers.onDone({
+          answer: String(payload.answer ?? ""),
+          answer_mode: String(payload.answer_mode ?? "template"),
+          strategy,
+          timing_ms: payload.timing_ms as QueryResponse["timing_ms"],
+        });
+      }
+    }
+  }
 }
 
 export { API_BASE };

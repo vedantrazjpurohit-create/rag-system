@@ -127,14 +127,9 @@ export function SafetyLab() {
             Score floor — drop low-confidence gibberish hits
           </li>
         </ul>
-        <a
-          href="https://github.com/vedantrazjpurohit-create/rag-system/blob/main/eval/ADVERSARIAL_EVAL.md"
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 inline-block text-xs text-emerald-400 hover:text-emerald-300"
-        >
-          Read full adversarial write-up →
-        </a>
+        <p className="mt-4 text-xs text-slate-500">
+          Full adversarial methodology documented in eval/ADVERSARIAL_EVAL.md
+        </p>
       </section>
     </div>
   );

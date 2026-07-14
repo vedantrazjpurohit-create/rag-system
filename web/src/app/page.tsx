@@ -6,18 +6,23 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { Header } from "@/components/Header";
 import { EvalDashboard } from "@/components/EvalDashboard";
+import { LandingHero } from "@/components/LandingHero";
+import { AboutPage } from "@/components/AboutPage";
 import { SafetyLab } from "@/components/SafetyLab";
 import { UploadPanel } from "@/components/UploadPanel";
-import { deleteDocument, getHealth, listDocuments } from "@/lib/api";
+import { deleteDocument, getHealth, listDocuments, seedDemo } from "@/lib/api";
 import type { DocumentInfo } from "@/lib/types";
 
-type Tab = "demo" | "eval" | "safety";
+type Tab = "demo" | "eval" | "safety" | "about";
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("demo");
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [chatFocus, setChatFocus] = useState(0);
+  const [showHero, setShowHero] = useState(true);
 
   const refreshDocuments = useCallback(async () => {
     setDocsLoading(true);
@@ -49,6 +54,26 @@ export default function Home() {
     }
   }
 
+  async function handleLoadSample() {
+    setSeeding(true);
+    try {
+      await seedDemo();
+      await refreshDocuments();
+      setShowHero(false);
+      setChatFocus((n) => n + 1);
+    } catch {
+      /* API offline banner handles visibility */
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  function handleJumpToChat() {
+    setShowHero(false);
+    setChatFocus((n) => n + 1);
+    document.getElementById("chat-panel")?.scrollIntoView({ behavior: "smooth" });
+  }
+
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_50%)]" />
@@ -57,28 +82,36 @@ export default function Home() {
       <main className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {apiOnline === false && (
           <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-100">
-            API offline. Start the backend:{" "}
-            <code className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-xs">
-              uvicorn api.app.main:app --reload --app-dir api
-            </code>
+            API offline. Run <code className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-xs">.\launch.ps1</code> locally or{" "}
+            <code className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-xs">.\deploy-site.ps1</code> for a public URL.
           </div>
         )}
 
         {tab === "demo" && (
-          <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-            <aside className="space-y-4">
-              <UploadPanel onUploaded={refreshDocuments} />
-              <DocumentsPanel
-                documents={documents}
-                loading={docsLoading}
-                onDelete={handleDelete}
+          <div className="space-y-4">
+            {showHero && (
+              <LandingHero
+                onTryDemo={handleJumpToChat}
+                onLoadSample={() => void handleLoadSample()}
+                loadingSample={seeding}
               />
-            </aside>
-            <ChatPanel />
+            )}
+            <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+              <aside className="space-y-4">
+                <UploadPanel onUploaded={refreshDocuments} />
+                <DocumentsPanel
+                  documents={documents}
+                  loading={docsLoading}
+                  onDelete={handleDelete}
+                />
+              </aside>
+              <ChatPanel focusNonce={chatFocus} />
+            </div>
           </div>
         )}
         {tab === "eval" && <EvalDashboard />}
         {tab === "safety" && <SafetyLab />}
+        {tab === "about" && <AboutPage />}
       </main>
     </div>
   );
