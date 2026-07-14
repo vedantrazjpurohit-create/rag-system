@@ -4,7 +4,7 @@ services:
   - type: web
     name: rag-system
     runtime: docker
-    dockerfilePath: ./Dockerfile.site
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
     healthCheckPath: /api-proxy/health
