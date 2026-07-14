@@ -36,9 +36,12 @@ ENV API_PROXY_TARGET=http://127.0.0.1:8000
 ENV ALLOW_VERCEL_PREVIEWS=true
 ENV EMBEDDER_BACKEND=fastembed
 ENV EMBEDDER_MODEL=BAAI/bge-small-en-v1.5
+ENV LOW_MEMORY_MODE=true
+ENV DEFAULT_STRATEGY=bm25
 
 RUN mkdir -p /app/.hf_cache /app/data/chroma \
     && python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')" \
+    && python scripts/seed_demo_build.py \
     && chmod +x /app/scripts/start-site.sh
 
 EXPOSE 10000

@@ -42,7 +42,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ focusNonce = 0 }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [strategy, setStrategy] = useState<Strategy>("router");
+  const [strategy, setStrategy] = useState<Strategy>("bm25");
   const [llmEnabled, setLlmEnabled] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,7 +71,10 @@ export function ChatPanel({ focusNonce = 0 }: ChatPanelProps) {
 
   useEffect(() => {
     getAppConfig()
-      .then((cfg) => setLlmEnabled(cfg.llm_enabled))
+      .then((cfg) => {
+        setLlmEnabled(cfg.llm_enabled);
+        if (cfg.default_strategy) setStrategy(cfg.default_strategy);
+      })
       .catch(() => setLlmEnabled(false));
   }, []);
 

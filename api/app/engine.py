@@ -34,6 +34,22 @@ from app.llm import generate_answer  # noqa: E402
 SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid", "router"}
 
 
+def _low_memory_mode() -> bool:
+    return os.environ.get("LOW_MEMORY_MODE", "").lower() in {"1", "true", "yes"}
+
+
+def _default_strategy() -> str:
+    return os.environ.get("DEFAULT_STRATEGY", "router")
+
+
+def _resolve_strategy(strategy: str) -> str:
+    if strategy not in SUPPORTED_STRATEGIES:
+        raise ValueError(f"Unsupported retrieval strategy: {strategy}")
+    if _low_memory_mode() and strategy in {"vector", "hybrid", "router"}:
+        return "bm25"
+    return strategy
+
+
 @dataclass
 class QueryResult:
     answer: str
@@ -47,7 +63,8 @@ class QueryResult:
 class RagEngine:
     def __init__(self, embedder: str | None = None):
         self.collection_name = "rag_api"
-        self.model = create_embedder(model_name=embedder)
+        self._embedder_name = embedder
+        self._model = None
         self.chroma_path = Path(
             os.environ.get("CHROMA_PATH", str(EVAL_ROOT.parent / "data" / "chroma"))
         )
@@ -60,6 +77,12 @@ class RagEngine:
         self._router = AdaptiveQueryRouter()
         self._guard = GuardConfig()
         self._hydrate_from_collection()
+
+    @property
+    def model(self):
+        if self._model is None:
+            self._model = create_embedder(model_name=self._embedder_name)
+        return self._model
 
     def _hydrate_from_collection(self) -> None:
         count = self.collection.count()
@@ -90,10 +113,9 @@ class RagEngine:
 
         doc_id = doc_id or self.doc_id_for_source(source)
         trust_tier = trust_tier_for_source(source)
-        ids = []
-        docs = []
-        metas = []
-        embeddings = self.model.encode(chunks)
+        ids: list[str] = []
+        docs: list[str] = []
+        metas: list[dict] = []
 
         for idx, chunk in enumerate(chunks):
             chunk_id = _stable_id(source, idx, chunk)
@@ -108,6 +130,11 @@ class RagEngine:
                 "trust_tier": trust_tier,
             }
 
+        if _low_memory_mode():
+            self._bm25.index_chunks(list(self._chunks_by_id.values()))
+            return len(chunks)
+
+        embeddings = self.model.encode(chunks)
         self.collection.upsert(ids=ids, documents=docs, embeddings=embeddings, metadatas=metas)
         self._bm25.index_chunks(list(self._chunks_by_id.values()))
         return len(chunks)
@@ -149,7 +176,7 @@ class RagEngine:
         self._bm25.index_chunks([])
 
     def stats(self) -> dict:
-        count = self.collection.count()
+        count = len(self._chunks_by_id)
         documents = self.list_documents()
         return {
             "chunk_count": count,
@@ -173,7 +200,10 @@ class RagEngine:
             grouped[doc_id]["chunk_count"] += 1
         return sorted(grouped.values(), key=lambda doc: doc["source"])
 
-    def seed_demo_corpus(self) -> dict:
+    def seed_demo_corpus(self, *, force: bool = False) -> dict:
+        if not force and self.collection.count() > 0:
+            return self._seed_status(already_seeded=True)
+
         raw_dir = EVAL_ROOT / "data" / "raw"
         seeded = []
         total_chunks = 0
@@ -186,7 +216,22 @@ class RagEngine:
             count = self.ingest_text(text, source=filename, doc_id=doc_id)
             total_chunks += count
             seeded.append({"source": filename, "doc_id": doc_id, "chunks_indexed": count})
-        return {"seeded": seeded, "total_chunks": total_chunks}
+        return {"seeded": seeded, "total_chunks": total_chunks, "already_seeded": False}
+
+    def _seed_status(self, *, already_seeded: bool) -> dict:
+        seeded = [
+            {
+                "source": doc["source"],
+                "doc_id": doc["doc_id"],
+                "chunks_indexed": doc["chunk_count"],
+            }
+            for doc in self.list_documents()
+        ]
+        return {
+            "seeded": seeded,
+            "total_chunks": self.collection.count(),
+            "already_seeded": already_seeded,
+        }
 
     def delete_document(self, doc_id: str) -> bool:
         chunk_ids = [cid for cid, chunk in self._chunks_by_id.items() if str(chunk["doc_id"]) == doc_id]
@@ -194,7 +239,10 @@ class RagEngine:
             return False
 
         source = str(self._chunks_by_id[chunk_ids[0]]["source"])
-        self.collection.delete(ids=chunk_ids)
+        try:
+            self.collection.delete(ids=chunk_ids)
+        except Exception:
+            pass
         for chunk_id in chunk_ids:
             self._chunks_by_id.pop(chunk_id, None)
         self._source_doc_ids.pop(source, None)
@@ -228,9 +276,7 @@ class RagEngine:
         )
 
     def search_contexts(self, question: str, top_k: int = 5, strategy: str = "vector") -> list[dict]:
-        if strategy not in SUPPORTED_STRATEGIES:
-            raise ValueError(f"Unsupported retrieval strategy: {strategy}")
-
+        strategy = _resolve_strategy(strategy)
         chunks = list(self._chunks_by_id.values())
         route = self._router.classify(question)
 

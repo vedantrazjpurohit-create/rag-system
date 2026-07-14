@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from app import llm
 from app.cors_config import cors_settings
-from app.engine import RagEngine, SUPPORTED_STRATEGIES
+from app.engine import RagEngine, SUPPORTED_STRATEGIES, _default_strategy, _low_memory_mode
 from app.extract import extract_upload_text
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,9 +33,9 @@ class _LazyEngine:
     _instance: RagEngine | None = None
 
     def _get(self) -> RagEngine:
-        if self._instance is None:
-            self._instance = RagEngine()
-        return self._instance
+        if _LazyEngine._instance is None:
+            _LazyEngine._instance = RagEngine()
+        return _LazyEngine._instance
 
     def __getattr__(self, name: str):
         return getattr(self._get(), name)
@@ -93,6 +93,8 @@ def app_config() -> dict:
         "persistence_enabled": True,
         "chroma_path": str(engine.chroma_path),
         "embedder_backend": os.environ.get("EMBEDDER_BACKEND", "sentence_transformers"),
+        "low_memory_mode": _low_memory_mode(),
+        "default_strategy": _default_strategy(),
     }
 
 
@@ -131,8 +133,11 @@ def adversarial_summary() -> dict:
 
 @app.post("/demo/seed")
 def seed_demo() -> dict:
-    engine.reset()
-    result = engine.seed_demo_corpus()
+    if _low_memory_mode():
+        result = engine.seed_demo_corpus()
+    else:
+        engine.reset()
+        result = engine.seed_demo_corpus(force=True)
     if not result["seeded"]:
         raise HTTPException(status_code=404, detail="Demo corpus files not found")
     return result
@@ -150,12 +155,17 @@ async def ingest(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=422, detail="Uploaded file has no readable text")
     doc_id = engine.doc_id_for_source(source)
     count = engine.ingest_text(text, source=source, doc_id=doc_id)
-    return {"chunks_indexed": count, "source": source, "doc_id": doc_id}
+    return {
+        "chunks_indexed": count,
+        "source": source,
+        "doc_id": doc_id,
+        "index_mode": "bm25" if _low_memory_mode() else "vector+bm25",
+    }
 
 
 @app.post("/query")
 def query(payload: QueryRequest):
-    strategy = payload.strategy or "router"
+    strategy = payload.strategy or _default_strategy()
     _validate_strategy(strategy)
     result = engine.query(payload.question, top_k=payload.top_k, strategy=strategy)
     body = {
@@ -180,7 +190,7 @@ def query(payload: QueryRequest):
 
 @app.post("/query/stream")
 def query_stream(payload: QueryRequest):
-    strategy = payload.strategy or "router"
+    strategy = payload.strategy or _default_strategy()
     _validate_strategy(strategy)
     started = time.perf_counter()
 

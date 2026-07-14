@@ -14,9 +14,21 @@ const API_BASE =
   (typeof window !== "undefined" ? "/api-proxy" : "http://127.0.0.1:8000");
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, init);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, init);
+  } catch {
+    throw new Error(
+      "Server unreachable — it may have restarted under memory pressure. Wait ~30s and try again.",
+    );
+  }
   if (!response.ok) {
     const detail = await response.text();
+    if (response.status === 502 || response.status === 503) {
+      throw new Error(
+        "Server overloaded (502). On Render free tier, use BM25 strategy and smaller files, or upgrade RAM.",
+      );
+    }
     throw new Error(detail || `Request failed: ${response.status}`);
   }
   return response.json() as Promise<T>;

@@ -23,6 +23,10 @@ services:
         value: fastembed
       - key: EMBEDDER_MODEL
         value: BAAI/bge-small-en-v1.5
+      - key: LOW_MEMORY_MODE
+        value: "true"
+      - key: DEFAULT_STRATEGY
+        value: bm25
       - key: XAI_API_KEY
         sync: false
       - key: XAI_MODEL

@@ -62,6 +62,23 @@ def test_ingest_and_query_roundtrip():
     assert default_query.json()["strategy"] == "router"
 
 
+def test_low_memory_ingest_skips_embedder(monkeypatch):
+    monkeypatch.setenv("LOW_MEMORY_MODE", "true")
+    api_main._LazyEngine._instance = None
+
+    payload = "Chunk size 1024 was the first baseline experiment."
+    files = {"file": ("notes.txt", io.BytesIO(payload.encode()), "text/plain")}
+    response = client.post("/ingest", files=files)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["chunks_indexed"] >= 1
+    assert body["index_mode"] == "bm25"
+    assert api_main._LazyEngine._instance is not None
+    engine = api_main._LazyEngine._instance
+    assert engine is not None
+    assert engine._model is None
+
+
 def test_ingest_rejects_empty_file():
     files = {"file": ("empty.txt", io.BytesIO(b"   \n"), "text/plain")}
     response = client.post("/ingest", files=files)
@@ -172,6 +189,7 @@ def test_config_endpoint():
     assert "llm_enabled" in body
     assert "strategies" in body
     assert "vector" in body["strategies"]
+    assert "default_strategy" in body
 
 
 def test_benchmarks_summary_endpoint():

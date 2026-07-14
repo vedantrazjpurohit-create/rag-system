@@ -68,12 +68,15 @@ export interface AppConfig {
   strategies: Strategy[];
   persistence_enabled?: boolean;
   chroma_path?: string;
+  low_memory_mode?: boolean;
+  default_strategy?: Strategy;
 }
 
 export interface IngestResponse {
   chunks_indexed: number;
   source: string;
   doc_id: string;
+  index_mode?: string;
 }
 
 export interface StrategySummary {

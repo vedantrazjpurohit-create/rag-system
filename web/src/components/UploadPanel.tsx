@@ -27,7 +27,8 @@ export function UploadPanel({ onUploaded }: UploadPanelProps) {
         results.push(await ingestFile(file));
       }
       const total = results.reduce((sum, r) => sum + r.chunks_indexed, 0);
-      setMessage(`Indexed ${total} chunks from ${results.length} file(s).`);
+      const mode = results[0]?.index_mode === "bm25" ? " (BM25 keyword index)" : "";
+      setMessage(`Indexed ${total} chunks from ${results.length} file(s)${mode}.`);
       onUploaded();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
