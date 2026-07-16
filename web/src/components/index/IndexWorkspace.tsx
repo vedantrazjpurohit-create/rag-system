@@ -205,9 +205,7 @@ export function IndexWorkspace({
                       Remove
                     </button>
                   </div>
-                  <p className="mt-1 text-xs text-[var(--sample-dim)]">
-                    {doc.chunk_count} chunks · ready
-                  </p>
+                  <p className="mt-1 text-xs text-[var(--sample-dim)]">ready</p>
                 </li>
               ))
             )}

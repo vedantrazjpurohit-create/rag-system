@@ -8,7 +8,7 @@ import { IndexReview } from "@/components/index/IndexReview";
 import { IndexWorkspace } from "@/components/index/IndexWorkspace";
 import { SampleHeader, type SampleTab } from "@/components/sample/SampleHeader";
 import { SampleHero } from "@/components/sample/SampleHero";
-import { deleteDocument, getHealth, listDocuments, seedDemo } from "@/lib/api";
+import { deleteDocument, getHealth, listDocuments } from "@/lib/api";
 import type { DocumentInfo } from "@/lib/types";
 
 export default function Home() {
@@ -16,9 +16,6 @@ export default function Home() {
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [chatFocus, setChatFocus] = useState(0);
-  const [showHero, setShowHero] = useState(true);
   const [wakingServer, setWakingServer] = useState(false);
 
   const indexedCount = useMemo(() => documents.length, [documents]);
@@ -58,20 +55,6 @@ export default function Home() {
     }
   }
 
-  async function handleLoadSample() {
-    setSeeding(true);
-    try {
-      await seedDemo();
-      await refreshDocuments();
-      setShowHero(false);
-      setChatFocus((n) => n + 1);
-    } catch {
-      /* API offline banner handles visibility */
-    } finally {
-      setSeeding(false);
-    }
-  }
-
   return (
     <>
       <SampleHeader active={tab} onChange={setTab} />
@@ -95,28 +78,11 @@ export default function Home() {
 
         {tab === "workspace" && (
           <div className="space-y-5">
-            {showHero && (
-              <div className="space-y-4">
-                <SampleHero documentCount={documents.length} indexedCount={indexedCount} />
-                {documents.length === 0 && (
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      disabled={seeding || apiOnline === false}
-                      onClick={() => void handleLoadSample()}
-                      className="sample-btn sample-btn-outline"
-                    >
-                      {seeding ? "Loading sample corpus…" : "Try sample corpus"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            <SampleHero documentCount={documents.length} indexedCount={indexedCount} />
             <IndexWorkspace
               documents={documents}
               onUploaded={refreshDocuments}
               onRemoveDocument={handleDelete}
-              focusNonce={chatFocus}
             />
           </div>
         )}

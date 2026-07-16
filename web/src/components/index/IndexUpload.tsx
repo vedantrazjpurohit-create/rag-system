@@ -27,8 +27,9 @@ export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
       for (const file of Array.from(files)) {
         results.push(await ingestFile(file));
       }
-      const total = results.reduce((sum, r) => sum + r.chunks_indexed, 0);
-      setMessage(`Indexed ${total} chunks from ${results.length} file${results.length === 1 ? "" : "s"}.`);
+      setMessage(
+        `Added ${results.length} file${results.length === 1 ? "" : "s"} — ready to search.`,
+      );
       onUploaded();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -67,7 +68,6 @@ export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
         <p className="text-sm text-[var(--sample-text)]">
           {uploading ? "Reading your files…" : "Drag files here, or click to browse"}
         </p>
-        <p className="mt-1 text-xs text-[var(--sample-muted)]">PDF, Markdown, or plain text</p>
         <input
           ref={inputRef}
           type="file"
