@@ -22,18 +22,13 @@ function needsAdminKey(method: string, path: string): boolean {
   return false;
 }
 
-async function proxy(request: NextRequest, pathSegments: string[]): Promise<NextResponse> {
-  const path = pathSegments.length ? `/${pathSegments.join("/")}` : "/";
-  const url = targetUrl(pathSegments, request.nextUrl.search);
-
+function buildProxyHeaders(request: NextRequest, path: string): Headers {
   const headers = new Headers();
-  request.headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-    if (lower === "host" || lower === "connection" || lower === "content-length") {
-      return;
-    }
-    headers.set(key, value);
-  });
+
+  const tenant = request.headers.get("x-tenant-id");
+  if (tenant) {
+    headers.set("X-Tenant-Id", tenant);
+  }
 
   const apiKey = process.env.RAG_API_KEY?.trim();
   if (apiKey) {
@@ -45,9 +40,43 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Next
     headers.set("X-Admin-Key", adminKey);
   }
 
-  const tenant = request.headers.get("x-tenant-id");
-  if (tenant) {
-    headers.set("X-Tenant-Id", tenant);
+  const contentType = request.headers.get("content-type");
+  if (contentType && !contentType.includes("multipart/form-data")) {
+    headers.set("Content-Type", contentType);
+  }
+
+  const accept = request.headers.get("accept");
+  if (accept) {
+    headers.set("Accept", accept);
+  }
+
+  return headers;
+}
+
+async function proxy(request: NextRequest, pathSegments: string[]): Promise<NextResponse> {
+  const path = pathSegments.length ? `/${pathSegments.join("/")}` : "/";
+  const url = targetUrl(pathSegments, request.nextUrl.search);
+  const headers = buildProxyHeaders(request, path);
+  const contentType = request.headers.get("content-type") || "";
+
+  // Multipart must be re-sent as FormData — streaming the raw body breaks boundaries.
+  if (request.method === "POST" && contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    const upstream = await fetch(url, {
+      method: "POST",
+      headers,
+      body: formData,
+      cache: "no-store",
+    });
+
+    const responseHeaders = new Headers(upstream.headers);
+    responseHeaders.delete("transfer-encoding");
+
+    return new NextResponse(upstream.body, {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: responseHeaders,
+    });
   }
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
@@ -71,6 +100,8 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Next
 }
 
 type RouteContext = { params: Promise<{ path: string[] }> };
+
+export const maxDuration = 120;
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const { path } = await context.params;
