@@ -35,6 +35,7 @@ _RATE_LIMITS: dict[str, tuple[int, int]] = {
     "/ingest": (10, 60),
     "/query": (30, 60),
     "/query/stream": (30, 60),
+    "/study": (20, 60),
     "/eval": (5, 300),
     "/eval/compare": (3, 300),
 }
@@ -144,10 +145,11 @@ def public_config() -> dict:
     """Safe subset of runtime config — never expose paths, keys, or host details."""
     from app.auth import admin_auth_enabled, auth_enabled
     from app.engine import SUPPORTED_STRATEGIES, _default_strategy, _low_memory_mode
-    from app import llm
+    from app import llm, web_search
 
     return {
         "llm_enabled": llm.is_enabled(),
+        "web_search_enabled": web_search.is_enabled(),
         "llm_model": llm.model_name(),
         "strategies": sorted(SUPPORTED_STRATEGIES),
         "persistence_enabled": True,

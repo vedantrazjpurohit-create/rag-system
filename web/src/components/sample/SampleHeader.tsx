@@ -1,6 +1,6 @@
 "use client";
 
-export type SampleTab = "workspace" | "library" | "compare" | "review";
+export type SampleTab = "workspace" | "learn" | "library" | "compare" | "review";
 
 interface SampleHeaderProps {
   active: SampleTab;
@@ -9,6 +9,7 @@ interface SampleHeaderProps {
 
 const TABS: { id: SampleTab; label: string }[] = [
   { id: "workspace", label: "Study" },
+  { id: "learn", label: "Learn" },
   { id: "library", label: "Files" },
   { id: "compare", label: "Compare" },
   { id: "review", label: "Check" },

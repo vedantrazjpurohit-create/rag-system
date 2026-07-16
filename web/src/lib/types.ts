@@ -73,6 +73,36 @@ export interface AppConfig {
   default_strategy?: Strategy;
   auth_required?: boolean;
   admin_auth_required?: boolean;
+  web_search_enabled?: boolean;
+}
+
+export type StudyMode = "notes" | "define" | "flashcards" | "web";
+
+export interface Flashcard {
+  front: string;
+  back: string;
+  source: string;
+}
+
+export interface StudyResponse {
+  mode: StudyMode;
+  topic: string;
+  answer_mode: string;
+  timing_ms: Record<string, number>;
+  notes?: string;
+  definition?: string;
+  term?: string;
+  cards?: Flashcard[];
+  summary?: string;
+  contexts?: RetrievedContext[];
+  strategy?: Strategy;
+}
+
+export interface SearchHistoryEntry {
+  id: string;
+  topic: string;
+  mode: StudyMode;
+  at: string;
 }
 
 export interface IngestResponse {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { IndexCompare } from "@/components/index/IndexCompare";
+import { IndexLearn } from "@/components/index/IndexLearn";
 import { IndexLibrary } from "@/components/index/IndexLibrary";
 import { IndexReview } from "@/components/index/IndexReview";
 import { IndexWorkspace } from "@/components/index/IndexWorkspace";
@@ -59,7 +60,9 @@ export default function Home() {
     <>
       <SampleHeader active={tab} onChange={setTab} />
 
-      <main className="mx-auto max-w-5xl px-5 py-6 sm:py-8">
+      <main
+        className={`mx-auto px-5 py-6 sm:py-8 ${tab === "learn" ? "max-w-7xl" : "max-w-5xl"}`}
+      >
         {wakingServer && apiOnline === null && (
           <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-[var(--sample-muted)]">
             Waking server… Render free tier can take 30–60s after idle. The page will load once the
@@ -86,6 +89,7 @@ export default function Home() {
             />
           </div>
         )}
+        {tab === "learn" && <IndexLearn documents={documents} />}
         {tab === "library" && (
           <IndexLibrary
             documents={documents}

@@ -26,6 +26,7 @@ from app.security import (
     max_upload_bytes,
     public_config,
 )
+from app.study import run_study
 
 ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = ROOT / "eval"
@@ -88,6 +89,15 @@ class EvalRequest(BaseModel):
     k: int = Field(default=5, ge=1, le=20)
     strategy: str = "vector"
     persist: bool = True
+
+
+class StudyRequest(BaseModel):
+    mode: str = Field(pattern="^(notes|define|flashcards|web)$")
+    topic: str = Field(min_length=2)
+    top_k: int = Field(default=8, ge=1, le=20)
+    count: int = Field(default=8, ge=1, le=12)
+    strategy: str | None = None
+    include_full_context: bool = False
 
 
 @app.get("/health")
@@ -270,6 +280,24 @@ def query_stream(payload: QueryRequest, request: Request):
         yield f"data: {json.dumps(done)}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.post("/study")
+def study(payload: StudyRequest, request: Request) -> dict:
+    tenant = require_api_access(request)
+    strategy = payload.strategy or _default_strategy()
+    if payload.mode != "web":
+        _validate_strategy(strategy)
+    return run_study(
+        engine,
+        mode=payload.mode,  # type: ignore[arg-type]
+        topic=payload.topic.strip(),
+        owner_id=tenant,
+        top_k=payload.top_k,
+        count=payload.count,
+        strategy=strategy,
+        include_full_context=payload.include_full_context,
+    )
 
 
 @app.post("/eval")

@@ -7,6 +7,8 @@ import type {
   QueryResponse,
   Stats,
   Strategy,
+  StudyMode,
+  StudyResponse,
 } from "./types";
 import { getTenantId } from "./tenant";
 
@@ -183,6 +185,26 @@ export async function queryStream(
     buffer = parts.pop() ?? "";
     for (const part of parts) dispatchEvent(part);
   }
+}
+
+export function runStudy(payload: {
+  mode: StudyMode;
+  topic: string;
+  top_k?: number;
+  count?: number;
+  strategy?: Strategy;
+}): Promise<StudyResponse> {
+  return request("/study", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: payload.mode,
+      topic: payload.topic,
+      top_k: payload.top_k ?? 8,
+      count: payload.count ?? 8,
+      strategy: payload.strategy,
+    }),
+  });
 }
 
 export { API_BASE };

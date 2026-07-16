@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 from typing import Any
@@ -163,3 +164,98 @@ def stream_answer_tokens(question: str, contexts: list[dict]):
         pass
 
     yield from _yield_words(_template_answer(contexts), "template")
+
+
+def _study_completion(system: str, user: str, *, max_tokens: int = 700) -> str | None:
+    if not is_enabled():
+        return None
+    try:
+        response = _client().chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.25,
+            max_tokens=max_tokens,
+        )
+        answer = (response.choices[0].message.content or "").strip()
+        return answer or None
+    except Exception:
+        return None
+
+
+def generate_notes(topic: str, contexts: list[dict]) -> tuple[str, str]:
+    if not contexts:
+        return REFUSAL_ANSWER, "template"
+    snippets = _format_snippets(contexts)
+    system = (
+        "You write clear study notes for a student. Use ONLY the provided document snippets. "
+        "Format with short headings and bullet points. Cite sources inline like [1]. "
+        "Do not invent facts. If snippets are thin, say what is missing."
+    )
+    user = f"Topic: {topic}\n\nSnippets:\n" + "\n\n".join(snippets)
+    answer = _study_completion(system, user, max_tokens=800)
+    if answer:
+        return answer, "llm"
+    return _template_answer(contexts), "template"
+
+
+def generate_definition(term: str, contexts: list[dict]) -> tuple[str, str]:
+    if not contexts:
+        return f"No definition for “{term}” was found in your uploaded files.", "template"
+    snippets = _format_snippets(contexts)
+    system = (
+        "You define academic terms precisely for a student. Use ONLY the snippets. "
+        "Write one tight paragraph (3–5 sentences). Cite like [1]. No URLs."
+    )
+    user = f"Define: {term}\n\nSnippets:\n" + "\n\n".join(snippets)
+    answer = _study_completion(system, user, max_tokens=350)
+    if answer:
+        return answer, "llm"
+    body = _truncate_at_boundary(_clean_context_text(str(contexts[0].get("text", contexts[0].get("excerpt", "")))), 420)
+    source = contexts[0].get("source") or contexts[0].get("doc_id") or "your notes"
+    return f"{term}: {body} (from {source})", "template"
+
+
+def generate_flashcards(topic: str, contexts: list[dict], count: int) -> tuple[str, str]:
+    if not contexts:
+        payload = json.dumps(
+            [
+                {
+                    "front": f"What is {topic}?",
+                    "back": "Upload PDFs that cover this topic, then regenerate.",
+                    "source": "Index",
+                }
+            ]
+        )
+        return payload, "template"
+    snippets = _format_snippets(contexts)
+    system = (
+        "Create study flashcards from document snippets. Return ONLY a JSON array. "
+        'Each item: {"front": "question", "back": "answer", "source": "filename"}. '
+        f"Return exactly {max(1, min(count, 12))} cards. No markdown, no URLs."
+    )
+    user = f"Topic: {topic}\n\nSnippets:\n" + "\n\n".join(snippets)
+    answer = _study_completion(system, user, max_tokens=900)
+    if answer:
+        return answer, "llm"
+    return "[]", "template"
+
+
+def generate_web_summary(query: str, snippets: list[str]) -> tuple[str, str]:
+    if not snippets:
+        return "No web background was found for this query.", "template"
+    joined = "\n".join(f"- {s}" for s in snippets[:5])
+    system = (
+        "You summarize background information for a student. Write ONE cohesive paragraph "
+        "(5–8 sentences). Use the research snippets only. Do NOT include URLs, links, or website names. "
+        "Plain explanatory prose only."
+    )
+    user = f"Query: {query}\n\nResearch snippets:\n{joined}"
+    answer = _study_completion(system, user, max_tokens=500)
+    if answer:
+        cleaned = re.sub(r"https?://\S+|www\.\S+", "", answer)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned, "llm"
+    return " ".join(snippets[:3]), "template"
