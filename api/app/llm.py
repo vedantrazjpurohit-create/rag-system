@@ -5,11 +5,18 @@ import os
 import re
 from typing import Any
 
-from app.text_normalize import normalize_engineering_text
+from app.text_normalize import (
+    best_prose_sentence,
+    has_remaining_garbage,
+    is_formula_heavy,
+    normalize_engineering_text,
+    prose_ratio,
+)
 
 DEFAULT_MODEL = os.environ.get("XAI_MODEL", "grok-4.5")
 REFUSAL_ANSWER = "No supporting context retrieved."
 _TEMPLATE_MAX_CHARS = 480
+_DEFINE_RE = re.compile(r"(?i)(?:what is|what's|define|explain)\s+(.+?)\??$")
 _INJECTION_PATTERNS = (
     re.compile(r"(?i)\bignore (all|previous|above) instructions\b"),
     re.compile(r"(?i)\bsystem prompt\b"),
@@ -52,11 +59,69 @@ def _yield_words(answer: str, mode: str):
         yield (word if idx == 0 else f" {word}"), mode
 
 
-def _template_answer(contexts: list[dict]) -> str:
+def _question_term(question: str) -> str | None:
+    match = _DEFINE_RE.search(question.strip())
+    if not match:
+        return None
+    return match.group(1).strip(" ?.,")
+
+
+def _normalize_ctx_text(ctx: dict) -> str:
+    raw = _clean_context_text(str(ctx.get("text", ctx.get("excerpt", ""))))
+    return normalize_engineering_text(raw)
+
+
+def _context_body(contexts: list[dict], ctx: dict | None = None) -> str:
+    chosen = ctx or contexts[0]
+    return _truncate_at_boundary(_normalize_ctx_text(chosen))
+
+
+def _find_prose_in_contexts(
+    contexts: list[dict], term: str | None
+) -> tuple[str | None, dict | None]:
+    for ctx in contexts[:6]:
+        prose = best_prose_sentence(_normalize_ctx_text(ctx), term)
+        if prose:
+            return prose, ctx
+    return None, None
+
+
+def _find_readable_excerpt(contexts: list[dict]) -> tuple[str, dict]:
+    for ctx in contexts[:6]:
+        body = _truncate_at_boundary(_normalize_ctx_text(ctx))
+        if (
+            not has_remaining_garbage(body)
+            and prose_ratio(body) >= 0.65
+            and not is_formula_heavy(body)
+        ):
+            return body, ctx
+    return _context_body(contexts), contexts[0]
+
+
+def _template_answer(contexts: list[dict], question: str = "") -> str:
     if not contexts:
         return REFUSAL_ANSWER
-    body = _truncate_at_boundary(_clean_context_text(str(contexts[0].get("text", contexts[0].get("excerpt", "")))))
-    source = contexts[0].get("source") or contexts[0].get("doc_id") or "document"
+    term = _question_term(question)
+    prose, prose_ctx = _find_prose_in_contexts(contexts, term)
+    if prose and prose_ctx:
+        source = prose_ctx.get("source") or prose_ctx.get("doc_id") or "document"
+        return f"{prose} [{source}]"
+
+    body, body_ctx = _find_readable_excerpt(contexts)
+    source = body_ctx.get("source") or body_ctx.get("doc_id") or "document"
+
+    if term and not has_remaining_garbage(body) and prose_ratio(body) >= 0.65 and not is_formula_heavy(body):
+        return f"{term.capitalize()} (from {source}): {body}"
+    if term and (has_remaining_garbage(body) or is_formula_heavy(body) or prose_ratio(body) < 0.55):
+        return (
+            f"I found material about “{term}” in {source}, but the PDF text didn't extract cleanly. "
+            f"Re-upload the file for a clearer answer, or ask: explain {term} in plain words."
+        )
+    if is_formula_heavy(body):
+        return (
+            f"Retrieved formulas from {source}, but plain-language text didn't extract cleanly. "
+            f"Try a more specific question or re-upload the PDF."
+        )
     return f"From [{source}]: {body}"
 
 
@@ -111,7 +176,7 @@ def generate_answer(question: str, contexts: list[dict]) -> tuple[str, str]:
         return REFUSAL_ANSWER, "template"
 
     if not is_enabled():
-        return _template_answer(contexts), "template"
+        return _template_answer(contexts, question), "template"
 
     system, user, _ = _prompt_messages(question, contexts)
 
@@ -129,9 +194,9 @@ def generate_answer(question: str, contexts: list[dict]) -> tuple[str, str]:
         if answer:
             return answer, "llm"
     except Exception:
-        return _template_answer(contexts), "template"
+        return _template_answer(contexts, question), "template"
 
-    return _template_answer(contexts), "template"
+    return _template_answer(contexts, question), "template"
 
 
 def stream_answer_tokens(question: str, contexts: list[dict]):
@@ -141,7 +206,7 @@ def stream_answer_tokens(question: str, contexts: list[dict]):
         return
 
     if not is_enabled():
-        yield from _yield_words(_template_answer(contexts), "template")
+        yield from _yield_words(_template_answer(contexts, question), "template")
         return
 
     system, user, _ = _prompt_messages(question, contexts)
@@ -167,7 +232,7 @@ def stream_answer_tokens(question: str, contexts: list[dict]):
     except Exception:
         pass
 
-    yield from _yield_words(_template_answer(contexts), "template")
+    yield from _yield_words(_template_answer(contexts, question), "template")
 
 
 def _study_completion(system: str, user: str, *, max_tokens: int = 700) -> str | None:
@@ -202,7 +267,7 @@ def generate_notes(topic: str, contexts: list[dict]) -> tuple[str, str]:
     answer = _study_completion(system, user, max_tokens=800)
     if answer:
         return answer, "llm"
-    return _template_answer(contexts), "template"
+    return _template_answer(contexts, topic), "template"
 
 
 def generate_definition(term: str, contexts: list[dict]) -> tuple[str, str]:
@@ -217,8 +282,18 @@ def generate_definition(term: str, contexts: list[dict]) -> tuple[str, str]:
     answer = _study_completion(system, user, max_tokens=350)
     if answer:
         return answer, "llm"
-    body = _truncate_at_boundary(_clean_context_text(str(contexts[0].get("text", contexts[0].get("excerpt", "")))), 420)
-    source = contexts[0].get("source") or contexts[0].get("doc_id") or "your notes"
+    prose, prose_ctx = _find_prose_in_contexts(contexts, term)
+    if prose and prose_ctx:
+        source = prose_ctx.get("source") or prose_ctx.get("doc_id") or "your notes"
+        return f"{term}: {prose} (from {source})", "template"
+    body, body_ctx = _find_readable_excerpt(contexts)
+    source = body_ctx.get("source") or body_ctx.get("doc_id") or "your notes"
+    if has_remaining_garbage(body) or is_formula_heavy(body):
+        return (
+            f"{term}: found in {source}, but formulas didn't extract cleanly — re-upload the PDF "
+            f"or ask for a plain-language explanation.",
+            "template",
+        )
     return f"{term}: {body} (from {source})", "template"
 
 

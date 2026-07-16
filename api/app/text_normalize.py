@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-# PDFs with embedded symbol fonts often map Latin subscripts into the Oriya Unicode block.
+# PDF symbol fonts often map Latin subscripts into Indic Unicode blocks.
 _ORIYA_TO_LATIN: dict[str, str] = {
     "\u0b05": "a",
     "\u0b06": "a",
@@ -62,12 +62,8 @@ _ORIYA_TO_LATIN: dict[str, str] = {
     "\u0b4d": "",
     "\u0b45": "A",
     "\u0b46": "A",
-    "\u0b47": "E",
-    "\u0b48": "E",
     "\u0b49": "E",
     "\u0b4a": "O",
-    "\u0b4b": "O",
-    "\u0b4c": "O",
     "\u0b54": "F",
     "\u0b55": "B",
     "\u0b56": "R",
@@ -76,10 +72,20 @@ _ORIYA_TO_LATIN: dict[str, str] = {
 }
 
 _ORIYA_BLOCK = re.compile(r"[\u0b00-\u0b7f]+")
+_INDIC_GARBAGE = re.compile(r"[\u0b00-\u0b7f\u0900-\u097f\u0c00-\u0c7f\u0c80-\u0cff]+")
 _LATIN_ORIYA = re.compile(
     r"([A-Za-z])\s*((?:[\u0b00-\u0b7f]+\s*)+)([A-Za-z]{0,4})?"
 )
 _COMBINING_NOISE = re.compile(r"[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\ufe20-\ufe2f]+")
+_SYMBOL_HEAVY = re.compile(r"^[^A-Za-z0-9\s]{3,}")
+
+
+def _order_subscript(sub: str) -> str:
+    letters = "".join(c for c in sub if c.isalpha())
+    if "O" in letters and "A" in letters and len(letters) <= 4:
+        rest = "".join(c for c in letters if c not in {"O", "A"})
+        return f"OA{rest}"
+    return sub
 
 
 def _decode_oriya_run(run: str) -> str:
@@ -90,7 +96,11 @@ def _decode_oriya_run(run: str) -> str:
             mapped = ""
         if mapped:
             parts.append(mapped)
-    return "".join(parts)
+    return _order_subscript("".join(parts))
+
+
+def has_remaining_garbage(text: str) -> bool:
+    return bool(_INDIC_GARBAGE.search(text))
 
 
 def normalize_engineering_text(text: str) -> str:
@@ -108,7 +118,65 @@ def normalize_engineering_text(text: str) -> str:
         return f"{base}_{sub}" if sub else base
 
     cleaned = _LATIN_ORIYA.sub(_subscript, cleaned)
-    cleaned = _ORIYA_BLOCK.sub("", cleaned)
-    cleaned = cleaned.replace("∑ ", "∑").replace("= ", "=")
+    cleaned = _INDIC_GARBAGE.sub("", cleaned)
+    cleaned = cleaned.replace("∑", "∑ ")
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     return cleaned.strip()
+
+
+def prose_ratio(text: str) -> float:
+    if not text:
+        return 0.0
+    good = sum(1 for c in text if c.isalnum() or c.isspace() or c in ".,;:-()[]")
+    return good / len(text)
+
+
+def is_formula_heavy(text: str) -> bool:
+    """True when text looks like a symbol equation dump, not readable prose."""
+    if not text:
+        return False
+    if has_remaining_garbage(text):
+        return True
+    words = re.findall(r"[A-Za-z]{3,}", text)
+    content_words = [
+        w
+        for w in words
+        if w.lower() not in {"sum", "the", "and", "for", "from", "with", "that", "this"}
+    ]
+    if len(content_words) >= 4 and prose_ratio(text) >= 0.7:
+        return False
+    if "∑" in text or text.count("_") >= 2:
+        return True
+    symbol_hits = sum(1 for c in text if c in "∑_=+-")
+    return symbol_hits >= 3 and len(content_words) < 2
+
+
+def best_prose_sentence(text: str, term: str | None) -> str | None:
+    if not term:
+        return None
+    term_l = term.lower().strip()
+    if not term_l:
+        return None
+
+    candidates: list[str] = []
+    for part in re.split(r"(?<=[.!?])\s+|\n+", text):
+        line = part.strip()
+        if len(line) < 28:
+            continue
+        if has_remaining_garbage(line):
+            continue
+        if prose_ratio(line) < 0.72:
+            continue
+        if _SYMBOL_HEAVY.match(line):
+            continue
+        candidates.append(line)
+
+    for line in candidates:
+        if term_l in line.lower():
+            return line
+
+    for line in candidates:
+        if term_l[: min(5, len(term_l))] in line.lower():
+            return line
+
+    return candidates[0] if candidates else None

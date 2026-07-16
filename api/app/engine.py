@@ -31,6 +31,7 @@ from src.retrieval.types import SearchResult  # noqa: E402
 from src.retrieval.router import AdaptiveQueryRouter  # noqa: E402
 
 from app.llm import generate_answer  # noqa: E402
+from app.text_normalize import normalize_engineering_text
 
 SUPPORTED_STRATEGIES = {"vector", "bm25", "hybrid", "router"}
 
@@ -93,7 +94,7 @@ class RagEngine:
         batch = self.collection.get(include=["documents", "metadatas"])
         for idx, chunk_id in enumerate(batch["ids"]):
             meta = batch["metadatas"][idx] or {}
-            text = batch["documents"][idx]
+            text = normalize_engineering_text(batch["documents"][idx])
             source = str(meta.get("source", ""))
             doc_id = str(meta.get("doc_id", ""))
             owner_id = str(meta.get("owner_id", "default"))
@@ -124,7 +125,7 @@ class RagEngine:
         *,
         owner_id: str = "default",
     ) -> int:
-        chunks = _chunk(text, 512, 64)
+        chunks = [normalize_engineering_text(c) for c in _chunk(text, 512, 64)]
         if not chunks:
             return 0
 
@@ -402,7 +403,7 @@ def _result_to_context(hit: SearchResult) -> dict:
     return {
         "chunk_id": hit.chunk_id,
         "doc_id": hit.doc_id,
-        "text": hit.text,
+        "text": normalize_engineering_text(hit.text),
         "source": hit.source,
         "score": hit.score,
     }

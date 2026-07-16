@@ -1,4 +1,4 @@
-from app.text_normalize import normalize_engineering_text
+from app.text_normalize import best_prose_sentence, normalize_engineering_text
 
 
 def test_repairs_oriya_subscripts_in_moment_equation():
@@ -16,3 +16,13 @@ def test_repairs_oriya_subscripts_in_moment_equation():
 def test_leaves_normal_text_untouched():
     text = "Force is a vector quantity with magnitude and direction."
     assert normalize_engineering_text(text) == text
+
+
+def test_best_prose_prefers_readable_sentence():
+    text = (
+        "∑ M_OA = M_OF + M_OB. "
+        "A force is an interaction that, when unopposed, changes the motion of a body."
+    )
+    sentence = best_prose_sentence(normalize_engineering_text(text), "force")
+    assert sentence is not None
+    assert "force is an interaction" in sentence.lower()

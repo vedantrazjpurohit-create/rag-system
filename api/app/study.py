@@ -8,6 +8,12 @@ from typing import Literal
 from app import llm, web_search
 from app.contexts import public_contexts
 from app.engine import RagEngine, _default_strategy
+from app.text_normalize import (
+    best_prose_sentence,
+    has_remaining_garbage,
+    is_formula_heavy,
+    normalize_engineering_text,
+)
 
 StudyMode = Literal["notes", "define", "flashcards", "web"]
 
@@ -31,7 +37,7 @@ def _template_notes(topic: str, contexts: list[dict]) -> str:
     lines = [f"Study notes: {topic}", ""]
     for idx, ctx in enumerate(contexts[:6], start=1):
         source = ctx.get("source") or ctx.get("doc_id") or "document"
-        text = str(ctx.get("text", ctx.get("excerpt", ""))).strip()
+        text = normalize_engineering_text(str(ctx.get("text", ctx.get("excerpt", ""))).strip())
         text = re.sub(r"\s+", " ", text)
         if len(text) > 280:
             text = text[:280].rsplit(" ", 1)[0] + "…"
@@ -44,11 +50,22 @@ def _template_notes(topic: str, contexts: list[dict]) -> str:
 def _template_definition(term: str, contexts: list[dict]) -> str:
     if not contexts:
         return f"No definition for “{term}” was found in your uploaded files."
-    body = str(contexts[0].get("text", contexts[0].get("excerpt", ""))).strip()
+    for ctx in contexts[:6]:
+        text = normalize_engineering_text(str(ctx.get("text", ctx.get("excerpt", ""))).strip())
+        prose = best_prose_sentence(text, term)
+        source = ctx.get("source") or ctx.get("doc_id") or "your notes"
+        if prose:
+            return f"{term}: {prose} (from {source})"
+    body = normalize_engineering_text(str(contexts[0].get("text", contexts[0].get("excerpt", ""))).strip())
     body = re.sub(r"\s+", " ", body)
     if len(body) > 420:
         body = body[:420].rsplit(" ", 1)[0] + "…"
     source = contexts[0].get("source") or contexts[0].get("doc_id") or "your notes"
+    if has_remaining_garbage(body) or is_formula_heavy(body):
+        return (
+            f"{term}: found in {source}, but formulas didn't extract cleanly — re-upload the PDF "
+            f"or ask for a plain-language explanation."
+        )
     return f"{term}: {body} (from {source})"
 
 
@@ -56,8 +73,10 @@ def _template_flashcards(topic: str, contexts: list[dict], count: int) -> list[d
     cards: list[dict] = []
     for ctx in contexts[:count]:
         source = ctx.get("source") or ctx.get("doc_id") or "document"
-        text = str(ctx.get("text", ctx.get("excerpt", ""))).strip()
+        text = normalize_engineering_text(str(ctx.get("text", ctx.get("excerpt", ""))).strip())
         text = re.sub(r"\s+", " ", text)
+        if is_formula_heavy(text):
+            text = best_prose_sentence(text, topic) or "PDF text didn't extract cleanly for this passage."
         if len(text) > 220:
             text = text[:220].rsplit(" ", 1)[0] + "…"
         cards.append(
