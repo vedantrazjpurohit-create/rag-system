@@ -15,7 +15,7 @@ export function ContextCard({ context, rank }: ContextCardProps) {
           {context.score.toFixed(3)}
         </span>
       </div>
-      <p className="line-clamp-4 text-xs leading-relaxed text-slate-300">{context.text}</p>
+      <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-300">{context.text}</p>
       <p className="mt-2 font-mono text-[10px] text-slate-600">{context.doc_id}</p>
     </article>
   );

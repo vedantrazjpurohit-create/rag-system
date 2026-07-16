@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 DEFAULT_MODEL = os.environ.get("XAI_MODEL", "grok-4.5")
 REFUSAL_ANSWER = "No supporting context retrieved."
+_TEMPLATE_MAX_CHARS = 480
 
 
 def is_enabled() -> bool:
@@ -13,6 +15,39 @@ def is_enabled() -> bool:
 
 def model_name() -> str | None:
     return DEFAULT_MODEL if is_enabled() else None
+
+
+def _clean_context_text(text: str) -> str:
+    parts: list[str] = []
+    for line in text.splitlines():
+        cleaned = re.sub(r"^#+\s*", "", line.strip())
+        if cleaned:
+            parts.append(cleaned)
+    return " ".join(parts)
+
+
+def _truncate_at_boundary(text: str, max_len: int = _TEMPLATE_MAX_CHARS) -> str:
+    text = re.sub(r"\s+", " ", text.strip())
+    if len(text) <= max_len:
+        return text
+    cut = text[:max_len]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip(".,;:!?") + "…"
+
+
+def _yield_words(answer: str, mode: str):
+    words = answer.split(" ")
+    for idx, word in enumerate(words):
+        yield (word if idx == 0 else f" {word}"), mode
+
+
+def _template_answer(contexts: list[dict]) -> str:
+    if not contexts:
+        return REFUSAL_ANSWER
+    body = _truncate_at_boundary(_clean_context_text(str(contexts[0].get("text", ""))))
+    source = contexts[0].get("source") or contexts[0].get("doc_id") or "document"
+    return f"From [{source}]: {body}"
 
 
 def _client() -> Any:
@@ -30,8 +65,7 @@ def generate_answer(question: str, contexts: list[dict]) -> tuple[str, str]:
         return REFUSAL_ANSWER, "template"
 
     if not is_enabled():
-        lead = contexts[0]["text"].replace("\n", " ")[:220]
-        return f"Top match suggests: {lead}", "template"
+        return _template_answer(contexts), "template"
 
     snippets = []
     for idx, ctx in enumerate(contexts[:4], start=1):
@@ -62,8 +96,7 @@ def generate_answer(question: str, contexts: list[dict]) -> tuple[str, str]:
     except Exception:
         pass
 
-    lead = contexts[0]["text"].replace("\n", " ")[:220]
-    return f"Top match suggests: {lead}", "template"
+    return _template_answer(contexts), "template"
 
 
 def _prompt_messages(question: str, contexts: list[dict]) -> tuple[str, str, str]:
@@ -92,8 +125,7 @@ def stream_answer_tokens(question: str, contexts: list[dict]):
         return
 
     if not is_enabled():
-        lead = contexts[0]["text"].replace("\n", " ")[:220]
-        yield f"Top match suggests: {lead}", "template"
+        yield from _yield_words(_template_answer(contexts), "template")
         return
 
     system, user, _ = _prompt_messages(question, contexts)
@@ -119,5 +151,4 @@ def stream_answer_tokens(question: str, contexts: list[dict]):
     except Exception:
         pass
 
-    lead = contexts[0]["text"].replace("\n", " ")[:220]
-    yield f"Top match suggests: {lead}", "template"
+    yield from _yield_words(_template_answer(contexts), "template")

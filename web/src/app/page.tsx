@@ -23,6 +23,7 @@ export default function Home() {
   const [seeding, setSeeding] = useState(false);
   const [chatFocus, setChatFocus] = useState(0);
   const [showHero, setShowHero] = useState(true);
+  const [wakingServer, setWakingServer] = useState(false);
 
   const refreshDocuments = useCallback(async () => {
     setDocsLoading(true);
@@ -37,12 +38,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const wakeTimer = window.setTimeout(() => setWakingServer(true), 2500);
     getHealth()
       .then(() => {
         setApiOnline(true);
         void refreshDocuments();
       })
-      .catch(() => setApiOnline(false));
+      .catch(() => setApiOnline(false))
+      .finally(() => {
+        window.clearTimeout(wakeTimer);
+        setWakingServer(false);
+      });
   }, [refreshDocuments]);
 
   async function handleDelete(docId: string) {
@@ -80,6 +86,11 @@ export default function Home() {
       <Header activeTab={tab} onTabChange={setTab} apiOnline={apiOnline} />
 
       <main className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        {wakingServer && apiOnline === null && (
+          <div className="mb-4 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+            Waking server… Render free tier can take 30–60s after idle. The page will load once the API responds.
+          </div>
+        )}
         {apiOnline === false && (
           <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-100">
             API offline. Run <code className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-xs">.\launch.ps1</code> locally or{" "}

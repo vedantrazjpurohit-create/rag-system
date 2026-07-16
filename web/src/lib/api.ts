@@ -128,34 +128,40 @@ export async function queryStream(
   const decoder = new TextDecoder();
   let buffer = "";
 
+  const dispatchEvent = (part: string) => {
+    const line = part.trim();
+    if (!line.startsWith("data: ")) return;
+    const payload = JSON.parse(line.slice(6)) as Record<string, unknown>;
+    if (payload.type === "meta") {
+      handlers.onMeta({
+        contexts: payload.contexts as QueryResponse["contexts"],
+        strategy: payload.strategy as Strategy,
+        retrieve_ms: payload.retrieve_ms as number,
+      });
+    } else if (payload.type === "token") {
+      handlers.onToken(String(payload.content ?? ""));
+    } else if (payload.type === "done") {
+      handlers.onDone({
+        answer: String(payload.answer ?? ""),
+        answer_mode: String(payload.answer_mode ?? "template"),
+        strategy,
+        timing_ms: payload.timing_ms as QueryResponse["timing_ms"],
+      });
+    }
+  };
+
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
-
-    for (const part of parts) {
-      const line = part.trim();
-      if (!line.startsWith("data: ")) continue;
-      const payload = JSON.parse(line.slice(6)) as Record<string, unknown>;
-      if (payload.type === "meta") {
-        handlers.onMeta({
-          contexts: payload.contexts as QueryResponse["contexts"],
-          strategy: payload.strategy as Strategy,
-          retrieve_ms: payload.retrieve_ms as number,
-        });
-      } else if (payload.type === "token") {
-        handlers.onToken(String(payload.content ?? ""));
-      } else if (payload.type === "done") {
-        handlers.onDone({
-          answer: String(payload.answer ?? ""),
-          answer_mode: String(payload.answer_mode ?? "template"),
-          strategy,
-          timing_ms: payload.timing_ms as QueryResponse["timing_ms"],
-        });
-      }
+    if (value) {
+      buffer += decoder.decode(value, { stream: !done });
     }
+    const parts = buffer.split("\n\n");
+    if (done) {
+      for (const part of parts) dispatchEvent(part);
+      break;
+    }
+    buffer = parts.pop() ?? "";
+    for (const part of parts) dispatchEvent(part);
   }
 }
 

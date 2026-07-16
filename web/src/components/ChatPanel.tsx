@@ -166,7 +166,9 @@ export function ChatPanel({ focusNonce = 0 }: ChatPanelProps) {
         <div className="border-b border-slate-800 px-4 py-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-[10px] text-slate-500">
-              {llmEnabled ? "Streaming · Grok (xAI)" : "Streaming · template mode"}
+              {llmEnabled
+                ? "Streaming · Grok (xAI)"
+                : "Template excerpts · set XAI_API_KEY on Render for full answers"}
             </span>
             <button
               type="button"
