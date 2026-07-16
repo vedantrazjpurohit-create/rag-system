@@ -8,7 +8,7 @@ echo "Preflight: importing FastAPI app..."
 python -c "from app.main import app; print('API import OK')"
 
 echo "Starting API on 127.0.0.1:${API_PORT}..."
-python -m uvicorn app.main:app --host 127.0.0.1 --port "${API_PORT}" &
+python -m uvicorn app.main:app --host 127.0.0.1 --port "${API_PORT}" --no-access-log --log-level warning &
 API_PID=$!
 
 echo "Waiting for API health..."

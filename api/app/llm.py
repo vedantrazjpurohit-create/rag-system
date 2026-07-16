@@ -94,7 +94,7 @@ def generate_answer(question: str, contexts: list[dict]) -> tuple[str, str]:
         if answer:
             return answer, "llm"
     except Exception:
-        pass
+        return _template_answer(contexts), "template"
 
     return _template_answer(contexts), "template"
 

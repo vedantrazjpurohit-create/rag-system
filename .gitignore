@@ -17,3 +17,17 @@ results/history.jsonl
 web/node_modules/
 web/.next/
 web/.env.local
+web/.env
+web/.env.*.local
+
+# Secrets — never commit real keys
+.env
+.env.*
+!.env.example
+!web/.env.local.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/

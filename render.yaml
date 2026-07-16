@@ -27,6 +27,12 @@ services:
         value: "true"
       - key: DEFAULT_STRATEGY
         value: bm25
+      - key: ENABLE_HSTS
+        value: "true"
+      - key: MAX_UPLOAD_BYTES
+        value: "5242880"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
       - key: XAI_API_KEY
         sync: false
       - key: XAI_MODEL

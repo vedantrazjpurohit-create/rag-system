@@ -38,7 +38,7 @@ $apiJob = Start-Job -ScriptBlock {
     $env:HF_HOME = "$Root\.hf_cache"
     $env:PYTHONPATH = "$Root\api;$Root\eval"
     $env:CHROMA_PATH = "$Root\data\chroma"
-    & "$Root\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+    & "$Root\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log --log-level warning
 } -ArgumentList $Root
 
 Start-Sleep -Seconds 3

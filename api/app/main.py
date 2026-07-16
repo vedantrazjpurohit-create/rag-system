@@ -17,6 +17,13 @@ from app import llm
 from app.cors_config import cors_settings
 from app.engine import RagEngine, SUPPORTED_STRATEGIES, _default_strategy, _low_memory_mode
 from app.extract import extract_upload_text
+from app.security import (
+    PrivacyHeadersMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    max_upload_bytes,
+    public_config,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = ROOT / "eval"
@@ -43,14 +50,18 @@ class _LazyEngine:
 
 engine = _LazyEngine()
 
+app.add_middleware(PrivacyHeadersMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
+
 _allow_origins, _allow_origin_regex = cors_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allow_origins,
     allow_origin_regex=_allow_origin_regex,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "Authorization"],
 )
 
 
@@ -86,16 +97,7 @@ def health() -> dict:
 
 @app.get("/config")
 def app_config() -> dict:
-    return {
-        "llm_enabled": llm.is_enabled(),
-        "llm_model": llm.model_name(),
-        "strategies": sorted(SUPPORTED_STRATEGIES),
-        "persistence_enabled": True,
-        "chroma_path": str(engine.chroma_path),
-        "embedder_backend": os.environ.get("EMBEDDER_BACKEND", "sentence_transformers"),
-        "low_memory_mode": _low_memory_mode(),
-        "default_strategy": _default_strategy(),
-    }
+    return public_config()
 
 
 @app.get("/stats")
@@ -146,6 +148,12 @@ def seed_demo() -> dict:
 @app.post("/ingest")
 async def ingest(file: UploadFile = File(...)) -> dict:
     raw = await file.read()
+    limit = max_upload_bytes()
+    if len(raw) > limit:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Upload too large. Max size is {limit // (1024 * 1024)}MB.",
+        )
     if not raw.strip():
         raise HTTPException(status_code=422, detail="Uploaded file is empty")
 

@@ -51,11 +51,11 @@ Open **http://localhost:3000** — upload docs, query with strategy selector, vi
 
 ### Optional: Grok LLM answers
 
-Set `XAI_API_KEY` (from https://console.x.ai) to switch from template answers to Grok:
+Set `XAI_API_KEY` in a local `.env` file only (never commit — copy from `.env.example`):
 
 ```powershell
-$env:XAI_API_KEY = "your-key"
-.\.venv\Scripts\uvicorn.exe api.app.main:app --reload --app-dir api
+Copy-Item .env.example .env
+.\launch.ps1
 ```
 
 ### Docker (API + web)
@@ -189,3 +189,10 @@ Full write-up (methodology, errors we hit, remaining gaps): **[eval/ADVERSARIAL_
 Merged from [rag-api](https://github.com/vedantrazjpurohit-create/rag-api) and [rag-eval-bench](https://github.com/vedantrazjpurohit-create/rag-eval-bench).
 
 **Stack:** Python 3.11+ · FastAPI · ChromaDB · sentence-transformers · pytest
+
+### Security
+
+- API keys live in **environment variables** (`.env` locally, Render/Vercel dashboards in prod) — never in git.
+- CI runs **Gitleaks** on every push to block accidental secret commits.
+- API responses omit internal paths; access logs disable client IP logging (`--no-access-log`).
+- Rate limits and upload size caps on sensitive endpoints. Rotate any key that was ever pasted in chat or committed.
