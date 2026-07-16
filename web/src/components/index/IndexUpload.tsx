@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 import { ingestFile } from "@/lib/api";
+import { TenantUnavailableError } from "@/lib/tenant";
 
 interface IndexUploadProps {
   fileCount: number;
@@ -18,13 +19,30 @@ export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
+
+    const allowed = Array.from(files).filter((file) => {
+      const name = file.name.toLowerCase();
+      return (
+        name.endsWith(".pdf") ||
+        name.endsWith(".txt") ||
+        name.endsWith(".md") ||
+        file.type === "application/pdf" ||
+        file.type.startsWith("text/")
+      );
+    });
+
+    if (!allowed.length) {
+      setError("Only PDF, .txt, and .md files are supported.");
+      return;
+    }
+
     setUploading(true);
     setError(null);
     setMessage(null);
 
     try {
       const results = [];
-      for (const file of Array.from(files)) {
+      for (const file of allowed) {
         results.push(await ingestFile(file));
       }
       setMessage(
@@ -32,7 +50,11 @@ export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
       );
       onUploaded();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      if (err instanceof TenantUnavailableError) {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";

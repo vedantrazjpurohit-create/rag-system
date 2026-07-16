@@ -10,7 +10,7 @@ import type {
   StudyMode,
   StudyResponse,
 } from "./types";
-import { getTenantId } from "./tenant";
+import { TenantUnavailableError, getTenantId } from "./tenant";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -19,22 +19,59 @@ const API_BASE =
 function tenantHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra);
   if (typeof window !== "undefined") {
-    headers.set("X-Tenant-Id", getTenantId());
+    try {
+      headers.set("X-Tenant-Id", getTenantId());
+    } catch (err) {
+      if (err instanceof TenantUnavailableError) {
+        throw err;
+      }
+      throw new TenantUnavailableError("Could not initialize a private session id.");
+    }
   }
   return headers;
 }
 
+function parseDetail(detail: string): string {
+  const trimmed = detail.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = JSON.parse(trimmed) as { detail?: unknown };
+    if (typeof parsed.detail === "string") return parsed.detail;
+    if (Array.isArray(parsed.detail)) {
+      return parsed.detail
+        .map((item) => (typeof item === "object" && item && "msg" in item ? String(item.msg) : String(item)))
+        .join("; ");
+    }
+  } catch {
+    /* plain text error */
+  }
+  return trimmed;
+}
+
 function formatError(status: number, detail: string): string {
+  const message = parseDetail(detail);
   if (status === 401) {
-    return "Unauthorized — API key missing or invalid on the server.";
+    return message || "Unauthorized — API key missing or invalid on the server.";
+  }
+  if (status === 400) {
+    return message || "Bad request — check file type and size (max 5MB).";
   }
   if (status === 403) {
-    return "Forbidden — this action requires admin access.";
+    return message || "Forbidden — this action requires admin access.";
+  }
+  if (status === 413) {
+    return message || "File too large — max 5MB on this server.";
+  }
+  if (status === 422) {
+    return message || "Could not read this file — try a smaller PDF or plain text.";
+  }
+  if (status === 429) {
+    return message || "Too many uploads — wait a minute and try again.";
   }
   if (status === 502 || status === 503) {
     return "Server overloaded (502). On Render free tier, use BM25 strategy and smaller files, or upgrade RAM.";
   }
-  return detail || `Request failed: ${status}`;
+  return message || `Request failed: ${status}`;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -70,8 +107,9 @@ export function listDocuments(): Promise<{ documents: DocumentInfo[] }> {
 
 export async function ingestFile(file: File): Promise<IngestResponse> {
   const form = new FormData();
-  form.append("file", file);
-  return request("/ingest", { method: "POST", body: form });
+  form.append("file", file, file.name);
+  const headers = tenantHeaders();
+  return request("/ingest", { method: "POST", headers, body: form });
 }
 
 export function queryDocuments(

@@ -73,6 +73,8 @@ export interface AppConfig {
   default_strategy?: Strategy;
   auth_required?: boolean;
   admin_auth_required?: boolean;
+  tenant_header_required?: boolean;
+  tenant_uuid_required?: boolean;
   web_search_enabled?: boolean;
 }
 

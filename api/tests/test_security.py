@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.security import redact_secrets
+from conftest import tenant_headers
 
 client = TestClient(app)
 
@@ -38,5 +39,5 @@ def test_redact_secrets():
 def test_upload_rejects_oversized_file(monkeypatch):
     monkeypatch.setattr("app.main.max_upload_bytes", lambda: 32)
     files = {"file": ("big.txt", b"x" * 64, "text/plain")}
-    response = client.post("/ingest", files=files)
+    response = client.post("/ingest", files=files, headers=tenant_headers())
     assert response.status_code == 413

@@ -143,7 +143,7 @@ def max_upload_bytes() -> int:
 
 def public_config() -> dict:
     """Safe subset of runtime config — never expose paths, keys, or host details."""
-    from app.auth import admin_auth_enabled, auth_enabled
+    from app.auth import admin_auth_enabled, auth_enabled, strict_tenant_uuid_required
     from app.engine import SUPPORTED_STRATEGIES, _default_strategy, _low_memory_mode
     from app import llm, web_search
 
@@ -158,4 +158,6 @@ def public_config() -> dict:
         "default_strategy": _default_strategy(),
         "auth_required": auth_enabled(),
         "admin_auth_required": admin_auth_enabled(),
+        "tenant_header_required": True,
+        "tenant_uuid_required": strict_tenant_uuid_required(),
     }

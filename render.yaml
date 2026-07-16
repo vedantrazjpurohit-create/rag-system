@@ -25,6 +25,8 @@ services:
         sync: false
       - key: TRUST_PROXY_HEADERS
         value: "true"
+      - key: STRICT_TENANT_UUID
+        value: "true"
       - key: EMBEDDER_BACKEND
         value: fastembed
       - key: EMBEDDER_MODEL

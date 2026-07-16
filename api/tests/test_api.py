@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app import main as api_main
 from app.main import app
+from conftest import tenant_headers
 from src.pipeline import load_questions, run_pipeline
 
 client = TestClient(app)
@@ -20,7 +21,7 @@ def test_health():
 
 
 def test_stats_empty_index():
-    response = client.get("/stats")
+    response = client.get("/stats", headers=tenant_headers())
     assert response.status_code == 200
     body = response.json()
     assert body["chunk_count"] >= 0
@@ -34,11 +35,11 @@ def test_ingest_and_query_roundtrip():
     )
     files = {"file": ("notes.txt", io.BytesIO(payload.encode()), "text/plain")}
 
-    ingest = client.post("/ingest", files=files)
+    ingest = client.post("/ingest", files=files, headers=tenant_headers())
     assert ingest.status_code == 200
     assert ingest.json()["chunks_indexed"] >= 1
 
-    stats = client.get("/stats")
+    stats = client.get("/stats", headers=tenant_headers())
     assert stats.json()["chunk_count"] >= 1
     assert "notes.txt" in stats.json()["sources"]
 
@@ -46,6 +47,7 @@ def test_ingest_and_query_roundtrip():
         query = client.post(
             "/query",
             json={"question": "What are ArUco markers used for?", "top_k": 3, "strategy": strategy},
+            headers=tenant_headers(),
         )
         assert query.status_code == 200
         body = query.json()
@@ -57,6 +59,7 @@ def test_ingest_and_query_roundtrip():
     default_query = client.post(
         "/query",
         json={"question": "What are ArUco markers used for?", "top_k": 3},
+        headers=tenant_headers(),
     )
     assert default_query.status_code == 200
     assert default_query.json()["strategy"] == "router"
@@ -68,7 +71,7 @@ def test_low_memory_ingest_skips_embedder(monkeypatch):
 
     payload = "Chunk size 1024 was the first baseline experiment."
     files = {"file": ("notes.txt", io.BytesIO(payload.encode()), "text/plain")}
-    response = client.post("/ingest", files=files)
+    response = client.post("/ingest", files=files, headers=tenant_headers())
     assert response.status_code == 200
     body = response.json()
     assert body["chunks_indexed"] >= 1
@@ -81,7 +84,7 @@ def test_low_memory_ingest_skips_embedder(monkeypatch):
 
 def test_ingest_rejects_empty_file():
     files = {"file": ("empty.txt", io.BytesIO(b"   \n"), "text/plain")}
-    response = client.post("/ingest", files=files)
+    response = client.post("/ingest", files=files, headers=tenant_headers())
     assert response.status_code == 422
 
 
@@ -93,12 +96,16 @@ def test_eval_endpoint_matches_standalone_pipeline(monkeypatch, tmp_path):
         corpus_path = Path("eval/data/raw") / filename
         corpus = corpus_path.read_text(encoding="utf-8")
         files = {"file": (filename, io.BytesIO(corpus.encode()), "text/plain")}
-        ingest = client.post("/ingest", files=files)
+        ingest = client.post("/ingest", files=files, headers=tenant_headers())
         assert ingest.status_code == 200
 
     baseline = run_pipeline("eval/configs/default.yaml")
     questions = load_questions("eval/data/questions.jsonl")
-    response = client.post("/eval", json={"questions": questions, "top_k": 5, "k": 5})
+    response = client.post(
+        "/eval",
+        json={"questions": questions, "top_k": 5, "k": 5},
+        headers=tenant_headers(),
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -125,7 +132,7 @@ def test_eval_endpoint_matches_standalone_pipeline(monkeypatch, tmp_path):
         for key in score_keys:
             assert actual_metrics[key] == expected["metrics"][key]
 
-    history = client.get("/eval/history")
+    history = client.get("/eval/history", headers=tenant_headers())
     assert history.status_code == 200
     assert history.json()["runs"][0]["metrics"] == history_record["metrics"]
 
@@ -134,11 +141,11 @@ def test_documents_list_and_delete():
     api_main.engine.reset()
     payload = "Chunk size 1024 was the first baseline experiment."
     files = {"file": ("baseline_chunks.md", io.BytesIO(payload.encode()), "text/plain")}
-    ingest = client.post("/ingest", files=files)
+    ingest = client.post("/ingest", files=files, headers=tenant_headers())
     assert ingest.status_code == 200
     doc_id = ingest.json()["doc_id"]
 
-    docs = client.get("/documents")
+    docs = client.get("/documents", headers=tenant_headers())
     assert docs.status_code == 200
     body = docs.json()
     assert len(body["documents"]) == 1
@@ -146,22 +153,22 @@ def test_documents_list_and_delete():
     assert body["documents"][0]["chunk_count"] >= 1
     assert body["documents"][0]["trust_tier"] == "trusted"
 
-    deleted = client.delete(f"/documents/{doc_id}")
+    deleted = client.delete(f"/documents/{doc_id}", headers=tenant_headers())
     assert deleted.status_code == 200
     assert deleted.json()["stats"]["chunk_count"] == 0
 
-    missing = client.delete("/documents/doc_missing")
+    missing = client.delete("/documents/doc_missing", headers=tenant_headers())
     assert missing.status_code == 404
 
 
 def test_demo_seed_endpoint():
     api_main.engine.reset()
-    response = client.post("/demo/seed")
+    response = client.post("/demo/seed", headers=tenant_headers())
     assert response.status_code == 200
     body = response.json()
     assert body["total_chunks"] >= 1
     assert len(body["seeded"]) == 2
-    stats = client.get("/stats")
+    stats = client.get("/stats", headers=tenant_headers())
     assert stats.json()["chunk_count"] >= 1
 
 
@@ -169,11 +176,12 @@ def test_query_stream_endpoint():
     api_main.engine.reset()
     payload = "Chunk size 1024 was the baseline for retrieval experiments."
     files = {"file": ("notes.txt", io.BytesIO(payload.encode()), "text/plain")}
-    client.post("/ingest", files=files)
+    client.post("/ingest", files=files, headers=tenant_headers())
 
     response = client.post(
         "/query/stream",
         json={"question": "What chunk size was used?", "top_k": 3, "strategy": "vector"},
+        headers=tenant_headers(),
     )
     assert response.status_code == 200
     assert "text/event-stream" in response.headers.get("content-type", "")
@@ -208,10 +216,10 @@ def test_eval_compare_endpoint(monkeypatch, tmp_path):
         corpus_path = Path("eval/data/raw") / filename
         corpus = corpus_path.read_text(encoding="utf-8")
         files = {"file": (filename, io.BytesIO(corpus.encode()), "text/plain")}
-        ingest = client.post("/ingest", files=files)
+        ingest = client.post("/ingest", files=files, headers=tenant_headers())
         assert ingest.status_code == 200
 
-    response = client.post("/eval/compare", json={"top_k": 5, "k": 5})
+    response = client.post("/eval/compare", json={"top_k": 5, "k": 5}, headers=tenant_headers())
     assert response.status_code == 200
     body = response.json()
     assert body["num_questions"] == 2
@@ -233,5 +241,6 @@ def test_query_rejects_unknown_strategy():
     response = client.post(
         "/query",
         json={"question": "What are ArUco markers used for?", "top_k": 3, "strategy": "unknown"},
+        headers=tenant_headers(),
     )
     assert response.status_code == 422

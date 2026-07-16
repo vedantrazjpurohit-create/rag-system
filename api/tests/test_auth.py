@@ -81,11 +81,13 @@ def test_query_returns_excerpts_not_full_text_by_default(monkeypatch):
     api_main.engine.reset()
     long_text = "A" * 800 + " unique marker"
     files = {"file": ("big.txt", io.BytesIO(long_text.encode()), "text/plain")}
-    client.post("/ingest", files=files)
+    tenant = str(uuid.uuid4())
+    client.post("/ingest", files=files, headers={"X-Tenant-Id": tenant})
 
     response = client.post(
         "/query",
         json={"question": "unique marker", "top_k": 1, "strategy": "bm25"},
+        headers={"X-Tenant-Id": tenant},
     )
     assert response.status_code == 200
     contexts = response.json()["contexts"]
@@ -93,3 +95,41 @@ def test_query_returns_excerpts_not_full_text_by_default(monkeypatch):
     assert "text" not in contexts[0]
     assert "excerpt" in contexts[0]
     assert len(contexts[0]["excerpt"]) < len(long_text)
+
+
+def test_tenant_header_required():
+    response = client.get("/stats")
+    assert response.status_code == 400
+    assert "X-Tenant-Id" in response.json()["detail"]
+
+
+def test_reserved_default_tenant_rejected():
+    files = {"file": ("x.txt", io.BytesIO(b"hello world text"), "text/plain")}
+    response = client.post("/ingest", files=files, headers={"X-Tenant-Id": "default"})
+    assert response.status_code == 400
+    assert "Reserved" in response.json()["detail"]
+
+
+def test_strict_uuid_rejects_non_uuid_when_auth_enabled(monkeypatch):
+    monkeypatch.setenv("RAG_API_KEY", "test-secret-key")
+    files = {"file": ("x.txt", io.BytesIO(b"hello world text"), "text/plain")}
+    response = client.post(
+        "/ingest",
+        files=files,
+        headers={"X-API-Key": "test-secret-key", "X-Tenant-Id": "my-tenant-1"},
+    )
+    assert response.status_code == 400
+    assert "UUID" in response.json()["detail"]
+
+
+def test_delete_other_tenant_document_returns_404(monkeypatch):
+    api_main.engine.reset()
+    tenant_a = str(uuid.uuid4())
+    tenant_b = str(uuid.uuid4())
+    files = {"file": ("notes.txt", io.BytesIO(b"tenant scoped notes"), "text/plain")}
+
+    ingest = client.post("/ingest", files=files, headers={"X-Tenant-Id": tenant_a})
+    doc_id = ingest.json()["doc_id"]
+
+    denied = client.delete(f"/documents/{doc_id}", headers={"X-Tenant-Id": tenant_b})
+    assert denied.status_code == 404
