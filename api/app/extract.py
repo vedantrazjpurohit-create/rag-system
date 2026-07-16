@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from concurrent.futures import ProcessPoolExecutor, TimeoutError as FuturesTimeoutError
 
+from app.text_normalize import normalize_engineering_text
+
 _DEFAULT_MAX_PDF_PAGES = 200
 _DEFAULT_MAX_EXTRACTED_CHARS = 500_000
 _DEFAULT_PDF_TIMEOUT_S = 30
@@ -40,6 +42,7 @@ def extract_upload_text(raw: bytes, filename: str) -> str:
 
 
 def _clip_text(text: str) -> str:
+    text = normalize_engineering_text(text)
     limit = _max_extracted_chars()
     if len(text) <= limit:
         return text
@@ -52,7 +55,7 @@ def _parse_pdf_worker(raw: bytes, max_pages: int, max_chars: int) -> str:
     with fitz.open(stream=raw, filetype="pdf") as doc:
         if doc.page_count > max_pages:
             raise ValueError(f"PDF has too many pages (max {max_pages})")
-        pages = [page.get_text() for page in doc]
+        pages = [page.get_text(sort=True) for page in doc]
     text = "\n".join(pages).strip()
     if len(text) > max_chars:
         text = text[:max_chars].rstrip()

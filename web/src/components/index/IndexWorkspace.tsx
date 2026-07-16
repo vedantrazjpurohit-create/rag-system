@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getAppConfig, queryStream } from "@/lib/api";
 import type { DocumentInfo, QueryResponse, RetrievedContext, Strategy } from "@/lib/types";
 
+import { EngineeringText, normalizeForDisplay } from "./EngineeringText";
 import { IndexContextCard } from "./IndexContextCard";
 import { IndexUpload } from "./IndexUpload";
 
@@ -119,18 +120,20 @@ export function IndexWorkspace({
         },
         onToken: (token) => {
           streamed += token;
+          const display = normalizeForDisplay(streamed);
           setMessages((prev) => {
             const copy = [...prev];
             const last = copy[copy.length - 1];
             if (last?.role === "assistant") {
-              copy[copy.length - 1] = { ...last, content: streamed, streaming: true };
+              copy[copy.length - 1] = { ...last, content: display, streaming: true };
             }
             return copy;
           });
         },
         onDone: (data) => {
+          const answer = normalizeForDisplay(data.answer);
           const full: QueryResponse = {
-            answer: data.answer,
+            answer,
             contexts: retrieved,
             strategy: data.strategy,
             answer_mode: data.answer_mode,
@@ -143,7 +146,7 @@ export function IndexWorkspace({
             if (last?.role === "assistant") {
               copy[copy.length - 1] = {
                 role: "assistant",
-                content: data.answer,
+                content: answer,
                 meta: full,
                 streaming: false,
               };
@@ -263,7 +266,11 @@ export function IndexWorkspace({
               key={`${msg.role}-${idx}`}
               className={msg.role === "user" ? "sample-bubble-user" : "sample-bubble-assistant"}
             >
-              {msg.content}
+              {msg.role === "assistant" ? (
+                <EngineeringText text={msg.content} />
+              ) : (
+                msg.content
+              )}
               {msg.streaming && (
                 <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-[var(--sample-dim)]" />
               )}

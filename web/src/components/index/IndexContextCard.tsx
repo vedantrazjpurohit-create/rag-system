@@ -1,5 +1,7 @@
 import type { RetrievedContext } from "@/lib/types";
 
+import { EngineeringText } from "./EngineeringText";
+
 interface IndexContextCardProps {
   context: RetrievedContext;
   rank: number;
@@ -22,7 +24,7 @@ export function IndexContextCard({ context, rank, active, onSelect }: IndexConte
       </div>
       <p className="text-xs text-[var(--sample-dim)]">score {context.score.toFixed(3)}</p>
       <p className="mt-2 text-sm leading-relaxed text-[var(--sample-muted)]">
-        {context.excerpt ?? context.text ?? ""}
+        <EngineeringText text={context.excerpt ?? context.text ?? ""} />
       </p>
     </article>
   );

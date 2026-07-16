@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+from app.text_normalize import normalize_engineering_text
+
 _DEFAULT_EXCERPT_CHARS = 320
 
 
@@ -13,7 +15,7 @@ def excerpt_chars() -> int:
 
 
 def public_context(hit: dict, *, include_full_text: bool = False) -> dict:
-    text = str(hit.get("text", ""))
+    text = normalize_engineering_text(str(hit.get("text", "")))
     excerpt = text if include_full_text else text[: excerpt_chars()].rstrip()
     if not include_full_text and len(text) > len(excerpt):
         excerpt += "…"
