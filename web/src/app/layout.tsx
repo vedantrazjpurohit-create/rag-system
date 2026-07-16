@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Lora } from "next/font/google";
+
 import "./globals.css";
+import "./index-theme.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,13 +14,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-sample-serif",
+  weight: ["400", "500", "600"],
+});
+
 export const metadata: Metadata = {
-  title: "RAG System — Upload, Query, Measure",
+  title: "Index — your course PDFs, in one place",
   description:
-    "Full-stack RAG with vector, BM25, hybrid, router retrieval, live eval, and adversarial safety testing.",
+    "Upload lecture PDFs, ask in plain language, and get answers with the page they came from.",
   openGraph: {
-    title: "RAG System — Retrieval you can prove",
-    description: "Upload docs, compare strategies, stress-test with adversarial eval.",
+    title: "Index — ask your notes like a friend who read the chapter",
+    description: "Drop in PDFs, ask definitions, formulas, or summaries — with sources.",
     type: "website",
   },
 };
@@ -31,10 +39,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+      <body className="sample-root min-h-full flex flex-col" suppressHydrationWarning>
         {children}
       </body>
     </html>

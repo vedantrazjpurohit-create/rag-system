@@ -1,0 +1,84 @@
+"use client";
+
+import { useRef, useState } from "react";
+
+import { ingestFile } from "@/lib/api";
+
+interface IndexUploadProps {
+  fileCount: number;
+  onUploaded: () => void;
+}
+
+export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const results = [];
+      for (const file of Array.from(files)) {
+        results.push(await ingestFile(file));
+      }
+      const total = results.reduce((sum, r) => sum + r.chunks_indexed, 0);
+      setMessage(`Indexed ${total} chunks from ${results.length} file${results.length === 1 ? "" : "s"}.`);
+      onUploaded();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <section className="sample-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-medium text-[var(--sample-text)]">Add your PDFs</h2>
+        <span className="text-xs text-[var(--sample-dim)]">{fileCount} added</span>
+      </div>
+
+      <div
+        role="button"
+        tabIndex={0}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          void handleFiles(e.dataTransfer.files);
+        }}
+        onClick={() => !uploading && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+        }}
+        className={`sample-dropzone cursor-pointer px-4 py-8 text-center ${dragging ? "sample-dropzone-active" : ""}`}
+      >
+        <p className="text-sm text-[var(--sample-text)]">
+          {uploading ? "Reading your files…" : "Drag files here, or click to browse"}
+        </p>
+        <p className="mt-1 text-xs text-[var(--sample-muted)]">PDF, Markdown, or plain text</p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".md,.txt,.pdf,text/plain,text/markdown,application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => void handleFiles(e.target.files)}
+        />
+      </div>
+      {message && <p className="mt-2 text-xs text-[var(--sample-muted)]">{message}</p>}
+      {error && <p className="mt-2 text-xs text-red-700/80">{error}</p>}
+    </section>
+  );
+}

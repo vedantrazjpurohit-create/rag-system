@@ -1,22 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ChatPanel } from "@/components/ChatPanel";
-import { DocumentsPanel } from "@/components/DocumentsPanel";
-import { Header } from "@/components/Header";
-import { EvalDashboard } from "@/components/EvalDashboard";
-import { LandingHero } from "@/components/LandingHero";
-import { AboutPage } from "@/components/AboutPage";
-import { SafetyLab } from "@/components/SafetyLab";
-import { UploadPanel } from "@/components/UploadPanel";
+import { IndexCompare } from "@/components/index/IndexCompare";
+import { IndexLibrary } from "@/components/index/IndexLibrary";
+import { IndexReview } from "@/components/index/IndexReview";
+import { IndexWorkspace } from "@/components/index/IndexWorkspace";
+import { SampleHeader, type SampleTab } from "@/components/sample/SampleHeader";
+import { SampleHero } from "@/components/sample/SampleHero";
 import { deleteDocument, getHealth, listDocuments, seedDemo } from "@/lib/api";
 import type { DocumentInfo } from "@/lib/types";
 
-type Tab = "demo" | "eval" | "safety" | "about";
-
 export default function Home() {
-  const [tab, setTab] = useState<Tab>("demo");
+  const [tab, setTab] = useState<SampleTab>("workspace");
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
@@ -24,6 +20,8 @@ export default function Home() {
   const [chatFocus, setChatFocus] = useState(0);
   const [showHero, setShowHero] = useState(true);
   const [wakingServer, setWakingServer] = useState(false);
+
+  const indexedCount = useMemo(() => documents.length, [documents]);
 
   const refreshDocuments = useCallback(async () => {
     setDocsLoading(true);
@@ -74,56 +72,68 @@ export default function Home() {
     }
   }
 
-  function handleJumpToChat() {
-    setShowHero(false);
-    setChatFocus((n) => n + 1);
-    document.getElementById("chat-panel")?.scrollIntoView({ behavior: "smooth" });
-  }
-
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_50%)]" />
-      <Header activeTab={tab} onTabChange={setTab} apiOnline={apiOnline} />
+    <>
+      <SampleHeader active={tab} onChange={setTab} />
 
-      <main className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-5xl px-5 py-6 sm:py-8">
         {wakingServer && apiOnline === null && (
-          <div className="mb-4 rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
-            Waking server… Render free tier can take 30–60s after idle. The page will load once the API responds.
+          <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-[var(--sample-muted)]">
+            Waking server… Render free tier can take 30–60s after idle. The page will load once the
+            API responds.
           </div>
         )}
         {apiOnline === false && (
-          <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-100">
-            API offline. Run <code className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-xs">.\launch.ps1</code> locally or{" "}
-            <code className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-xs">.\deploy-site.ps1</code> for a public URL.
+          <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-[var(--sample-muted)]">
+            API offline. Run{" "}
+            <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
+              .\launch.ps1
+            </code>{" "}
+            locally or deploy to Render for a public URL.
           </div>
         )}
 
-        {tab === "demo" && (
-          <div className="space-y-4">
+        {tab === "workspace" && (
+          <div className="space-y-5">
             {showHero && (
-              <LandingHero
-                onTryDemo={handleJumpToChat}
-                onLoadSample={() => void handleLoadSample()}
-                loadingSample={seeding}
-              />
+              <div className="space-y-4">
+                <SampleHero documentCount={documents.length} indexedCount={indexedCount} />
+                {documents.length === 0 && (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      disabled={seeding || apiOnline === false}
+                      onClick={() => void handleLoadSample()}
+                      className="sample-btn sample-btn-outline"
+                    >
+                      {seeding ? "Loading sample corpus…" : "Try sample corpus"}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
-            <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-              <aside className="space-y-4">
-                <UploadPanel onUploaded={refreshDocuments} />
-                <DocumentsPanel
-                  documents={documents}
-                  loading={docsLoading}
-                  onDelete={handleDelete}
-                />
-              </aside>
-              <ChatPanel focusNonce={chatFocus} />
-            </div>
+            <IndexWorkspace
+              documents={documents}
+              onUploaded={refreshDocuments}
+              onRemoveDocument={handleDelete}
+              focusNonce={chatFocus}
+            />
           </div>
         )}
-        {tab === "eval" && <EvalDashboard />}
-        {tab === "safety" && <SafetyLab />}
-        {tab === "about" && <AboutPage />}
+        {tab === "library" && (
+          <IndexLibrary
+            documents={documents}
+            loading={docsLoading}
+            onRemoveDocument={handleDelete}
+          />
+        )}
+        {tab === "compare" && <IndexCompare documents={documents} />}
+        {tab === "review" && <IndexReview documentCount={documents.length} />}
       </main>
-    </div>
+
+      <footer className="mx-auto max-w-5xl px-5 pb-10 pt-2">
+        <p className="text-center text-sm text-[var(--sample-dim)]">Made for late-night study sessions</p>
+      </footer>
+    </>
   );
 }
