@@ -4,6 +4,7 @@ import hashlib
 import os
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -95,74 +96,87 @@ class RagEngine:
             text = batch["documents"][idx]
             source = str(meta.get("source", ""))
             doc_id = str(meta.get("doc_id", ""))
+            owner_id = str(meta.get("owner_id", "default"))
             self._chunks_by_id[chunk_id] = {
                 "id": chunk_id,
                 "doc_id": doc_id,
                 "source": source,
                 "text": text,
                 "trust_tier": trust_tier_for_source(source),
+                "owner_id": owner_id,
             }
             if source and doc_id:
-                self._source_doc_ids[source] = doc_id
+                self._source_doc_ids[self._source_key(source, owner_id)] = doc_id
         self._bm25.index_chunks(list(self._chunks_by_id.values()))
 
-    def ingest_text(self, text: str, source: str, doc_id: str | None = None) -> int:
+    @staticmethod
+    def _source_key(source: str, owner_id: str) -> str:
+        return f"{owner_id}::{source}"
+
+    def _tenant_chunks(self, owner_id: str) -> list[dict]:
+        return [chunk for chunk in self._chunks_by_id.values() if str(chunk.get("owner_id", "default")) == owner_id]
+
+    def ingest_text(
+        self,
+        text: str,
+        source: str,
+        doc_id: str | None = None,
+        *,
+        owner_id: str = "default",
+    ) -> int:
         chunks = _chunk(text, 512, 64)
         if not chunks:
             return 0
 
-        doc_id = doc_id or self.doc_id_for_source(source)
+        doc_id = doc_id or self.doc_id_for_source(source, owner_id=owner_id)
         trust_tier = trust_tier_for_source(source)
         ids: list[str] = []
         docs: list[str] = []
         metas: list[dict] = []
 
         for idx, chunk in enumerate(chunks):
-            chunk_id = _stable_id(source, idx, chunk)
+            chunk_id = _stable_id(owner_id, source, idx, chunk)
             ids.append(chunk_id)
             docs.append(chunk)
-            metas.append({"source": source, "chunk_index": idx, "doc_id": doc_id})
+            metas.append(
+                {
+                    "source": source,
+                    "chunk_index": idx,
+                    "doc_id": doc_id,
+                    "owner_id": owner_id,
+                }
+            )
             self._chunks_by_id[chunk_id] = {
                 "id": chunk_id,
                 "doc_id": doc_id,
                 "source": source,
                 "text": chunk,
                 "trust_tier": trust_tier,
+                "owner_id": owner_id,
             }
 
         if _low_memory_mode():
-            self._bm25.index_chunks(list(self._chunks_by_id.values()))
+            self._bm25.index_chunks(self._tenant_chunks(owner_id))
             return len(chunks)
 
         embeddings = self.model.encode(chunks)
         self.collection.upsert(ids=ids, documents=docs, embeddings=embeddings, metadatas=metas)
-        self._bm25.index_chunks(list(self._chunks_by_id.values()))
+        self._bm25.index_chunks(self._tenant_chunks(owner_id))
         return len(chunks)
 
-    def doc_id_for_source(self, source: str) -> str:
-        if source in self._source_doc_ids:
-            return self._source_doc_ids[source]
+    def doc_id_for_source(self, source: str, *, owner_id: str = "default") -> str:
+        key = self._source_key(source, owner_id)
+        if key in self._source_doc_ids:
+            return self._source_doc_ids[key]
 
-        existing_doc_ids: set[str] = set()
-        existing_sources: set[str] = set()
-        if self.collection.count():
-            batch = self.collection.get(include=["metadatas"])
-            for meta in batch.get("metadatas") or []:
-                if not meta:
-                    continue
-                existing_source = str(meta.get("source", ""))
-                existing_doc_id = str(meta.get("doc_id", ""))
-                if existing_source:
-                    existing_sources.add(existing_source)
-                if existing_source == source and existing_doc_id:
-                    self._source_doc_ids[source] = existing_doc_id
-                    return existing_doc_id
-                if existing_doc_id:
-                    existing_doc_ids.add(existing_doc_id)
+        for chunk in self._tenant_chunks(owner_id):
+            if str(chunk.get("source")) == source:
+                doc_id = str(chunk["doc_id"])
+                self._source_doc_ids[key] = doc_id
+                return doc_id
 
-        next_index = len(existing_doc_ids) if existing_doc_ids else len(existing_sources)
-        doc_id = f"doc_{next_index}"
-        self._source_doc_ids[source] = doc_id
+        doc_id = str(uuid.uuid4())
+        self._source_doc_ids[key] = doc_id
         return doc_id
 
     def reset(self) -> None:
@@ -175,19 +189,19 @@ class RagEngine:
         self._chunks_by_id.clear()
         self._bm25.index_chunks([])
 
-    def stats(self) -> dict:
-        count = len(self._chunks_by_id)
-        documents = self.list_documents()
+    def stats(self, *, owner_id: str = "default") -> dict:
+        chunks = self._tenant_chunks(owner_id)
+        documents = self.list_documents(owner_id=owner_id)
         return {
-            "chunk_count": count,
+            "chunk_count": len(chunks),
             "source_count": len(documents),
             "sources": sorted(doc["source"] for doc in documents),
             "doc_ids": sorted(doc["doc_id"] for doc in documents),
         }
 
-    def list_documents(self) -> list[dict]:
+    def list_documents(self, *, owner_id: str = "default") -> list[dict]:
         grouped: dict[str, dict] = {}
-        for chunk in self._chunks_by_id.values():
+        for chunk in self._tenant_chunks(owner_id):
             doc_id = str(chunk["doc_id"])
             source = str(chunk["source"])
             if doc_id not in grouped:
@@ -200,9 +214,9 @@ class RagEngine:
             grouped[doc_id]["chunk_count"] += 1
         return sorted(grouped.values(), key=lambda doc: doc["source"])
 
-    def seed_demo_corpus(self, *, force: bool = False) -> dict:
-        if not force and self.collection.count() > 0:
-            return self._seed_status(already_seeded=True)
+    def seed_demo_corpus(self, *, force: bool = False, owner_id: str = "default") -> dict:
+        if not force and self._tenant_chunks(owner_id):
+            return self._seed_status(already_seeded=True, owner_id=owner_id)
 
         raw_dir = EVAL_ROOT / "data" / "raw"
         seeded = []
@@ -212,29 +226,33 @@ class RagEngine:
             if not path.exists():
                 continue
             text = path.read_text(encoding="utf-8")
-            doc_id = self.doc_id_for_source(filename)
-            count = self.ingest_text(text, source=filename, doc_id=doc_id)
+            doc_id = self.doc_id_for_source(filename, owner_id=owner_id)
+            count = self.ingest_text(text, source=filename, doc_id=doc_id, owner_id=owner_id)
             total_chunks += count
             seeded.append({"source": filename, "doc_id": doc_id, "chunks_indexed": count})
         return {"seeded": seeded, "total_chunks": total_chunks, "already_seeded": False}
 
-    def _seed_status(self, *, already_seeded: bool) -> dict:
+    def _seed_status(self, *, already_seeded: bool, owner_id: str = "default") -> dict:
         seeded = [
             {
                 "source": doc["source"],
                 "doc_id": doc["doc_id"],
                 "chunks_indexed": doc["chunk_count"],
             }
-            for doc in self.list_documents()
+            for doc in self.list_documents(owner_id=owner_id)
         ]
         return {
             "seeded": seeded,
-            "total_chunks": self.collection.count(),
+            "total_chunks": len(self._tenant_chunks(owner_id)),
             "already_seeded": already_seeded,
         }
 
-    def delete_document(self, doc_id: str) -> bool:
-        chunk_ids = [cid for cid, chunk in self._chunks_by_id.items() if str(chunk["doc_id"]) == doc_id]
+    def delete_document(self, doc_id: str, *, owner_id: str = "default") -> bool:
+        chunk_ids = [
+            cid
+            for cid, chunk in self._chunks_by_id.items()
+            if str(chunk["doc_id"]) == doc_id and str(chunk.get("owner_id", "default")) == owner_id
+        ]
         if not chunk_ids:
             return False
 
@@ -245,15 +263,22 @@ class RagEngine:
             pass
         for chunk_id in chunk_ids:
             self._chunks_by_id.pop(chunk_id, None)
-        self._source_doc_ids.pop(source, None)
-        self._bm25.index_chunks(list(self._chunks_by_id.values()))
+        self._source_doc_ids.pop(self._source_key(source, owner_id), None)
+        self._bm25.index_chunks(self._tenant_chunks(owner_id))
         return True
 
-    def query(self, question: str, top_k: int = 5, strategy: str = "vector") -> QueryResult:
+    def query(
+        self,
+        question: str,
+        top_k: int = 5,
+        strategy: str = "vector",
+        *,
+        owner_id: str = "default",
+    ) -> QueryResult:
         started = time.perf_counter()
 
         t0 = time.perf_counter()
-        contexts = self.search_contexts(question, top_k=top_k, strategy=strategy)
+        contexts = self.search_contexts(question, top_k=top_k, strategy=strategy, owner_id=owner_id)
         retrieve_ms = (time.perf_counter() - t0) * 1000
 
         if not contexts and not self.collection.count():
@@ -275,21 +300,31 @@ class RagEngine:
             answer_mode=answer_mode,
         )
 
-    def search_contexts(self, question: str, top_k: int = 5, strategy: str = "vector") -> list[dict]:
+    def search_contexts(
+        self,
+        question: str,
+        top_k: int = 5,
+        strategy: str = "vector",
+        *,
+        owner_id: str = "default",
+    ) -> list[dict]:
         strategy = _resolve_strategy(strategy)
-        chunks = list(self._chunks_by_id.values())
+        chunks = self._tenant_chunks(owner_id)
+        if not chunks:
+            return []
+        self._bm25.index_chunks(chunks)
         route = self._router.classify(question)
 
         if strategy == "vector":
-            raw = self._search_vector(question, top_k)
+            raw = self._search_vector(question, top_k, owner_id=owner_id)
         elif strategy == "bm25":
             raw = self._bm25.search(question, top_k)
         elif strategy == "router":
             selected = self._router.pick_strategy(question)
-            return self.search_contexts(question, top_k=top_k, strategy=selected)
+            return self.search_contexts(question, top_k=top_k, strategy=selected, owner_id=owner_id)
         else:
             hybrid = HybridRetriever(
-                vector_search=self._search_vector,
+                vector_search=lambda q, k: self._search_vector(q, k, owner_id=owner_id),
                 bm25_search=self._bm25.search,
             )
             raw = hybrid.search(question, top_k)
@@ -308,26 +343,39 @@ class RagEngine:
         )
         return [_result_to_context(hit) for hit in guarded]
 
-    def _search_vector(self, question: str, top_k: int = 5) -> list[SearchResult]:
+    def _search_vector(self, question: str, top_k: int = 5, *, owner_id: str = "default") -> list[SearchResult]:
+        tenant_chunks = self._tenant_chunks(owner_id)
+        if not tenant_chunks:
+            return []
+
+        allowed_ids = {str(chunk["id"]) for chunk in tenant_chunks}
         count = self.collection.count()
         if count == 0:
             return []
 
         query_vec = self.model.encode([question])
-        hits = self.collection.query(query_embeddings=query_vec, n_results=min(top_k, count))
+        hits = self.collection.query(
+            query_embeddings=query_vec,
+            n_results=min(top_k * 4, count),
+        )
 
         hits_out: list[SearchResult] = []
         for i, doc in enumerate(hits["documents"][0]):
+            chunk_id = hits["ids"][0][i]
+            if chunk_id not in allowed_ids:
+                continue
             metadata = hits["metadatas"][0][i]
             hits_out.append(
                 SearchResult(
-                    chunk_id=hits["ids"][0][i],
+                    chunk_id=chunk_id,
                     doc_id=metadata.get("doc_id", metadata.get("source", "")),
                     text=doc,
                     score=1.0 - hits["distances"][0][i],
                     source=metadata["source"],
                 )
             )
+            if len(hits_out) >= top_k:
+                break
         return hits_out
 
 
@@ -345,8 +393,8 @@ def _chunk(text: str, size: int, overlap: int) -> list[str]:
     return chunks
 
 
-def _stable_id(source: str, idx: int, chunk: str) -> str:
-    digest = hashlib.sha1(f"{source}:{idx}:{chunk[:40]}".encode()).hexdigest()[:10]
+def _stable_id(owner_id: str, source: str, idx: int, chunk: str) -> str:
+    digest = hashlib.sha1(f"{owner_id}:{source}:{idx}:{chunk[:40]}".encode()).hexdigest()[:10]
     return f"{digest}_{idx}"
 
 

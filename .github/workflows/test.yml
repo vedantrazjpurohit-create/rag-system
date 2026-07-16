@@ -19,7 +19,10 @@ jobs:
       - name: Run tests
         env:
           HF_HOME: ${{ github.workspace }}/.hf_cache
+          PDF_PARSE_IN_PROCESS: "true"
         run: python -m pytest api/tests eval/tests -q
+      - name: pip-audit (prod deps)
+        run: pip install pip-audit && pip-audit -r requirements-prod.txt || true
 
   web-build:
     runs-on: ubuntu-latest

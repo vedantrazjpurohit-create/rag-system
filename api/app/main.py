@@ -8,12 +8,14 @@ from pathlib import Path
 
 import os
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app import llm
+from app.auth import require_admin, require_api_access
+from app.contexts import public_contexts
 from app.cors_config import cors_settings
 from app.engine import RagEngine, SUPPORTED_STRATEGIES, _default_strategy, _low_memory_mode
 from app.extract import extract_upload_text
@@ -33,7 +35,7 @@ if str(EVAL_ROOT) not in sys.path:
 DEFAULT_QUESTIONS_PATH = EVAL_ROOT / "data" / "questions.jsonl"
 HISTORY_PATH = ROOT / "results" / "history.jsonl"
 
-app = FastAPI(title="rag-system", version="0.3.0")
+app = FastAPI(title="rag-system", version="0.4.0")
 
 
 class _LazyEngine:
@@ -61,7 +63,7 @@ app.add_middleware(
     allow_origin_regex=_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept", "Authorization"],
+    allow_headers=["Content-Type", "Accept", "Authorization", "X-API-Key", "X-Admin-Key", "X-Tenant-Id"],
 )
 
 
@@ -69,6 +71,7 @@ class QueryRequest(BaseModel):
     question: str = Field(min_length=3)
     top_k: int = Field(default=5, ge=1, le=20)
     strategy: str | None = None
+    include_full_context: bool = False
 
 
 class EvalQuestion(BaseModel):
@@ -101,20 +104,24 @@ def app_config() -> dict:
 
 
 @app.get("/stats")
-def stats() -> dict:
-    return engine.stats()
+def stats(request: Request) -> dict:
+    tenant = require_api_access(request)
+    return engine.stats(owner_id=tenant)
 
 
 @app.get("/documents")
-def list_documents() -> dict:
-    return {"documents": engine.list_documents()}
+def list_documents(request: Request) -> dict:
+    tenant = require_api_access(request)
+    return {"documents": engine.list_documents(owner_id=tenant)}
 
 
 @app.delete("/documents/{doc_id}")
-def delete_document(doc_id: str) -> dict:
-    if not engine.delete_document(doc_id):
+def delete_document(doc_id: str, request: Request) -> dict:
+    require_admin(request)
+    tenant = require_api_access(request)
+    if not engine.delete_document(doc_id, owner_id=tenant):
         raise HTTPException(status_code=404, detail=f"Document not found: {doc_id}")
-    return {"deleted": doc_id, "stats": engine.stats()}
+    return {"deleted": doc_id, "stats": engine.stats(owner_id=tenant)}
 
 
 @app.get("/benchmarks/summary")
@@ -134,19 +141,22 @@ def adversarial_summary() -> dict:
 
 
 @app.post("/demo/seed")
-def seed_demo() -> dict:
+def seed_demo(request: Request) -> dict:
+    require_admin(request)
+    tenant = require_api_access(request)
     if _low_memory_mode():
-        result = engine.seed_demo_corpus()
+        result = engine.seed_demo_corpus(owner_id=tenant)
     else:
         engine.reset()
-        result = engine.seed_demo_corpus(force=True)
+        result = engine.seed_demo_corpus(force=True, owner_id=tenant)
     if not result["seeded"]:
         raise HTTPException(status_code=404, detail="Demo corpus files not found")
     return result
 
 
 @app.post("/ingest")
-async def ingest(file: UploadFile = File(...)) -> dict:
+async def ingest(request: Request, file: UploadFile = File(...)) -> dict:
+    tenant = require_api_access(request)
     raw = await file.read()
     limit = max_upload_bytes()
     if len(raw) > limit:
@@ -158,11 +168,14 @@ async def ingest(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=422, detail="Uploaded file is empty")
 
     source = file.filename or "upload"
-    text = extract_upload_text(raw, source)
+    try:
+        text = extract_upload_text(raw, source)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not text:
         raise HTTPException(status_code=422, detail="Uploaded file has no readable text")
-    doc_id = engine.doc_id_for_source(source)
-    count = engine.ingest_text(text, source=source, doc_id=doc_id)
+    doc_id = engine.doc_id_for_source(source, owner_id=tenant)
+    count = engine.ingest_text(text, source=source, doc_id=doc_id, owner_id=tenant)
     return {
         "chunks_indexed": count,
         "source": source,
@@ -172,13 +185,22 @@ async def ingest(file: UploadFile = File(...)) -> dict:
 
 
 @app.post("/query")
-def query(payload: QueryRequest):
+def query(payload: QueryRequest, request: Request):
+    tenant = require_api_access(request)
     strategy = payload.strategy or _default_strategy()
     _validate_strategy(strategy)
-    result = engine.query(payload.question, top_k=payload.top_k, strategy=strategy)
+    result = engine.query(
+        payload.question,
+        top_k=payload.top_k,
+        strategy=strategy,
+        owner_id=tenant,
+    )
     body = {
         "answer": result.answer,
-        "contexts": result.contexts,
+        "contexts": public_contexts(
+            result.contexts,
+            include_full_text=payload.include_full_context,
+        ),
         "strategy": strategy,
         "answer_mode": result.answer_mode,
         "timing_ms": {
@@ -197,19 +219,26 @@ def query(payload: QueryRequest):
 
 
 @app.post("/query/stream")
-def query_stream(payload: QueryRequest):
+def query_stream(payload: QueryRequest, request: Request):
+    tenant = require_api_access(request)
     strategy = payload.strategy or _default_strategy()
     _validate_strategy(strategy)
     started = time.perf_counter()
 
     t0 = time.perf_counter()
-    contexts = engine.search_contexts(payload.question, top_k=payload.top_k, strategy=strategy)
+    contexts = engine.search_contexts(
+        payload.question,
+        top_k=payload.top_k,
+        strategy=strategy,
+        owner_id=tenant,
+    )
     retrieve_ms = (time.perf_counter() - t0) * 1000
+    public = public_contexts(contexts, include_full_text=payload.include_full_context)
 
     def event_stream():
         meta = {
             "type": "meta",
-            "contexts": contexts,
+            "contexts": public,
             "strategy": strategy,
             "retrieve_ms": round(retrieve_ms, 2),
         }
@@ -244,11 +273,11 @@ def query_stream(payload: QueryRequest):
 
 
 @app.post("/eval")
-def run_eval(payload: EvalRequest | None = None) -> dict:
-    from src.pipeline import evaluate_questions  # noqa: E402
-
+def run_eval(request: Request, payload: EvalRequest | None = None) -> dict:
+    require_admin(request)
+    tenant = require_api_access(request)
     payload = payload or EvalRequest()
-    if engine.stats()["chunk_count"] == 0:
+    if engine.stats(owner_id=tenant)["chunk_count"] == 0:
         raise HTTPException(status_code=422, detail="Ingest documents before running eval")
     _validate_strategy(payload.strategy)
 
@@ -260,6 +289,7 @@ def run_eval(payload: EvalRequest | None = None) -> dict:
             question,
             top_k=top_k,
             strategy=payload.strategy,
+            owner_id=tenant,
         ),
         top_k=payload.top_k,
         k=payload.k,
@@ -280,11 +310,11 @@ def run_eval(payload: EvalRequest | None = None) -> dict:
 
 
 @app.post("/eval/compare")
-def eval_compare(payload: EvalRequest | None = None) -> dict:
-    from src.pipeline import evaluate_questions  # noqa: E402
-
+def eval_compare(request: Request, payload: EvalRequest | None = None) -> dict:
+    require_admin(request)
+    tenant = require_api_access(request)
     payload = payload or EvalRequest()
-    if engine.stats()["chunk_count"] == 0:
+    if engine.stats(owner_id=tenant)["chunk_count"] == 0:
         raise HTTPException(status_code=422, detail="Ingest documents before running eval")
 
     questions = _eval_questions(payload)
@@ -298,6 +328,7 @@ def eval_compare(payload: EvalRequest | None = None) -> dict:
                 question,
                 top_k=top_k,
                 strategy=s,
+                owner_id=tenant,
             ),
             top_k=payload.top_k,
             k=payload.k,
@@ -318,7 +349,8 @@ def eval_compare(payload: EvalRequest | None = None) -> dict:
 
 
 @app.get("/eval/history")
-def eval_history(limit: int = 20) -> dict:
+def eval_history(request: Request, limit: int = 20) -> dict:
+    require_admin(request)
     limit = max(1, min(limit, 100))
     if not HISTORY_PATH.exists():
         return {"runs": []}
@@ -356,3 +388,7 @@ def _validate_strategy(strategy: str) -> None:
     if strategy not in SUPPORTED_STRATEGIES:
         allowed = ", ".join(sorted(SUPPORTED_STRATEGIES))
         raise HTTPException(status_code=422, detail=f"Unsupported retrieval strategy: {strategy}. Use one of: {allowed}")
+
+
+# Late import keeps evaluate_questions available to route handlers.
+from src.pipeline import evaluate_questions  # noqa: E402

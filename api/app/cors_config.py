@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 
 def cors_settings() -> tuple[list[str], str | None]:
@@ -15,7 +16,12 @@ def cors_settings() -> tuple[list[str], str | None]:
         origins.append(frontend)
 
     regex = None
-    if os.environ.get("ALLOW_VERCEL_PREVIEWS", "true").lower() in {"1", "true", "yes"}:
-        regex = r"https://.*\.vercel\.app"
+    if os.environ.get("ALLOW_VERCEL_PREVIEWS", "false").lower() in {"1", "true", "yes"}:
+        project = os.environ.get("VERCEL_PREVIEW_PROJECT", "").strip()
+        if project:
+            escaped = re.escape(project)
+            regex = rf"https://{escaped}(?:-[a-z0-9-]+)?\.vercel\.app"
+        else:
+            regex = r"https://.*\.vercel\.app"
 
     return origins, regex

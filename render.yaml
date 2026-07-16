@@ -18,6 +18,12 @@ services:
       - key: API_PROXY_TARGET
         value: http://127.0.0.1:8000
       - key: ALLOW_VERCEL_PREVIEWS
+        value: "false"
+      - key: RAG_API_KEY
+        sync: false
+      - key: RAG_ADMIN_KEY
+        sync: false
+      - key: TRUST_PROXY_HEADERS
         value: "true"
       - key: EMBEDDER_BACKEND
         value: fastembed

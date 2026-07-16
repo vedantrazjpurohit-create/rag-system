@@ -8,15 +8,40 @@ import type {
   Stats,
   Strategy,
 } from "./types";
+import { getTenantId } from "./tenant";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   (typeof window !== "undefined" ? "/api-proxy" : "http://127.0.0.1:8000");
 
+function tenantHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra);
+  if (typeof window !== "undefined") {
+    headers.set("X-Tenant-Id", getTenantId());
+  }
+  return headers;
+}
+
+function formatError(status: number, detail: string): string {
+  if (status === 401) {
+    return "Unauthorized — API key missing or invalid on the server.";
+  }
+  if (status === 403) {
+    return "Forbidden — this action requires admin access.";
+  }
+  if (status === 502 || status === 503) {
+    return "Server overloaded (502). On Render free tier, use BM25 strategy and smaller files, or upgrade RAM.";
+  }
+  return detail || `Request failed: ${status}`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, init);
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: tenantHeaders(init?.headers),
+    });
   } catch {
     throw new Error(
       "Server unreachable — it may have restarted under memory pressure. Wait ~30s and try again.",
@@ -24,12 +49,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!response.ok) {
     const detail = await response.text();
-    if (response.status === 502 || response.status === 503) {
-      throw new Error(
-        "Server overloaded (502). On Render free tier, use BM25 strategy and smaller files, or upgrade RAM.",
-      );
-    }
-    throw new Error(detail || `Request failed: ${response.status}`);
+    throw new Error(formatError(response.status, detail));
   }
   return response.json() as Promise<T>;
 }
@@ -115,12 +135,12 @@ export async function queryStream(
 ): Promise<void> {
   const response = await fetch(`${API_BASE}/query/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: tenantHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ question, strategy, top_k: topK }),
   });
 
   if (!response.ok || !response.body) {
-    handlers.onError(await response.text());
+    handlers.onError(formatError(response.status, await response.text()));
     return;
   }
 

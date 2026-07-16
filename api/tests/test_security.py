@@ -12,6 +12,7 @@ def test_config_never_exposes_secrets_or_paths():
     body = response.json()
     assert "chroma_path" not in body
     assert "XAI_API_KEY" not in str(body)
+    assert "auth_required" in body
     for key, value in body.items():
         assert "api_key" not in key.lower()
         if isinstance(value, str):

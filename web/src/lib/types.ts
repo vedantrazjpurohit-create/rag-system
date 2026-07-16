@@ -17,9 +17,10 @@ export interface Stats {
 export interface RetrievedContext {
   chunk_id: string;
   doc_id: string;
-  text: string;
   source: string;
   score: number;
+  excerpt?: string;
+  text?: string;
 }
 
 export interface QueryResponse {
@@ -70,6 +71,8 @@ export interface AppConfig {
   chroma_path?: string;
   low_memory_mode?: boolean;
   default_strategy?: Strategy;
+  auth_required?: boolean;
+  admin_auth_required?: boolean;
 }
 
 export interface IngestResponse {

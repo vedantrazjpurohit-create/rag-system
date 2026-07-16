@@ -31,7 +31,13 @@ _SENSITIVE_HEADERS = frozenset(
     }
 )
 
-_RATE_LIMIT_PATHS = frozenset({"/ingest", "/query", "/query/stream", "/eval", "/eval/compare"})
+_RATE_LIMITS: dict[str, tuple[int, int]] = {
+    "/ingest": (10, 60),
+    "/query": (30, 60),
+    "/query/stream": (30, 60),
+    "/eval": (5, 300),
+    "/eval/compare": (3, 300),
+}
 _DEFAULT_RATE_LIMIT = 30
 _DEFAULT_RATE_WINDOW_S = 60
 _DEFAULT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -48,11 +54,28 @@ def _rate_limit_salt() -> str:
     return os.environ.get("RATE_LIMIT_SALT", os.environ.get("CHROMA_PATH", "rag-system"))
 
 
+def _trust_proxy_headers() -> bool:
+    return os.environ.get("TRUST_PROXY_HEADERS", "").lower() in {"1", "true", "yes"}
+
+
+def _client_host(request: Request) -> str:
+    if _trust_proxy_headers():
+        forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+        if forwarded:
+            return forwarded
+    return request.client.host if request.client else "anon"
+
+
 def _client_bucket(request: Request) -> str:
-    """One-way bucket id — never log or persist the raw IP."""
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    host = forwarded or (request.client.host if request.client else "anon")
-    digest = hashlib.sha256(f"{_rate_limit_salt()}:{host}".encode()).hexdigest()
+    """One-way bucket id — never log or persist the raw IP or API key."""
+    api_key = (request.headers.get("x-api-key") or "").strip()
+    auth = (request.headers.get("authorization") or "").strip()
+    if auth.lower().startswith("bearer "):
+        api_key = api_key or auth[7:].strip()
+    tenant = (request.headers.get("x-tenant-id") or "").strip()
+    host = _client_host(request)
+    material = f"{_rate_limit_salt()}:{tenant}:{api_key}:{host}:{request.url.path}"
+    digest = hashlib.sha256(material.encode()).hexdigest()
     return digest[:24]
 
 
@@ -89,20 +112,21 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         path = request.url.path
-        if path not in _RATE_LIMIT_PATHS:
+        if path not in _RATE_LIMITS:
             return await call_next(request)
 
-        bucket = _client_bucket(request)
+        limit, window_s = _RATE_LIMITS[path]
+        bucket = f"{path}:{_client_bucket(request)}"
         now = time.monotonic()
         window = self._hits[bucket]
-        while window and now - window[0] > self._window:
+        while window and now - window[0] > window_s:
             window.popleft()
-        if len(window) >= self._limit:
+        if len(window) >= limit:
             return Response(
                 content='{"detail":"Rate limit exceeded. Try again shortly."}',
                 status_code=429,
                 media_type="application/json",
-                headers={"Retry-After": str(self._window)},
+                headers={"Retry-After": str(window_s)},
             )
         window.append(now)
         return await call_next(request)
@@ -118,6 +142,7 @@ def max_upload_bytes() -> int:
 
 def public_config() -> dict:
     """Safe subset of runtime config — never expose paths, keys, or host details."""
+    from app.auth import admin_auth_enabled, auth_enabled
     from app.engine import SUPPORTED_STRATEGIES, _default_strategy, _low_memory_mode
     from app import llm
 
@@ -129,4 +154,6 @@ def public_config() -> dict:
         "embedder_backend": os.environ.get("EMBEDDER_BACKEND", "sentence_transformers"),
         "low_memory_mode": _low_memory_mode(),
         "default_strategy": _default_strategy(),
+        "auth_required": auth_enabled(),
+        "admin_auth_required": admin_auth_enabled(),
     }
