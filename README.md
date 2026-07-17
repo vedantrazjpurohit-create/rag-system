@@ -66,17 +66,19 @@ docker compose up --build
 
 ## Deploy (live demo)
 
-**Stack:** Render (API) + Vercel (web). Free tier works for demos; upgrade Render to Starter ($7/mo) if the embedder OOMs on 512MB.
+**Stack:** Render (API only) + Vercel (Next.js UI). The UI loads fast from Vercel; the API stays on Render for Chroma/PDF/embeddings.
 
 ### 1. Deploy API on Render
 
-1. Go to [render.com](https://render.com) → **New** → **Blueprint**
+1. Go to [render.com](https://render.com) → **New** → **Blueprint** (or update an existing service)
 2. Connect `vedantrazjpurohit-create/rag-system`
-3. Render reads `render.yaml` and creates `rag-system-api`
-4. After deploy, copy the URL (e.g. `https://rag-system-api.onrender.com`)
-5. In Render **Environment**, set:
-   - `FRONTEND_URL` = your Vercel URL (after step 2)
+3. Render uses `Dockerfile.api` + `render.yaml` (Python API only — no Next.js in the image)
+4. After deploy, copy the URL (e.g. `https://contextiq-dpz3.onrender.com`)
+5. In Render **Environment**, set at least:
+   - `RAG_API_KEY` / `RAG_ADMIN_KEY` (strong secrets)
    - `XAI_API_KEY` = optional, for Grok answers
+   - `FRONTEND_URL` = your Vercel URL (after step 2)
+   - `ALLOW_VERCEL_PREVIEWS=true` (already in `render.yaml`)
 
 Health check: `GET /health`
 
@@ -84,14 +86,23 @@ Health check: `GET /health`
 
 1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project**
 2. Import `vedantrazjpurohit-create/rag-system`
-3. Set **Root Directory** = `web`
-4. Add environment variable:
-   - `NEXT_PUBLIC_API_URL` = your Render API URL
+3. Set **Root Directory** = `web` (important)
+4. Add **server** environment variables (Production + Preview):
+
+| Variable | Value |
+|----------|--------|
+| `API_PROXY_TARGET` | Your Render API origin, e.g. `https://contextiq-dpz3.onrender.com` |
+| `RAG_API_KEY` | Same as Render |
+| `RAG_ADMIN_KEY` | Same as Render |
+
+Do **not** set `NEXT_PUBLIC_API_URL` on Vercel — the browser should call same-origin `/api-proxy`, which injects API keys server-side.
+
 5. Deploy → copy your Vercel URL (e.g. `https://rag-system.vercel.app`)
 
 ### 3. Link them
 
-Back in Render, set `FRONTEND_URL` to your Vercel URL and redeploy. CORS also allows `*.vercel.app` previews automatically.
+1. Render → set `FRONTEND_URL` = `https://your-app.vercel.app` → redeploy API if needed
+2. Open the Vercel URL — UI should load immediately; first API call may wait on Render free-tier cold start
 
 ### Verify
 
@@ -99,8 +110,7 @@ Back in Render, set `FRONTEND_URL` to your Vercel URL and redeploy. CORS also al
 |-------|-----|
 | API health | `https://<api>/health` |
 | Live site | `https://<vercel>/` |
-| Safety Lab | adversarial charts load from API |
-| Eval tab | benchmarks + live eval |
+| Proxy health | `https://<vercel>/api-proxy/health` |
 
 Add both URLs to your GitHub README and LinkedIn.
 

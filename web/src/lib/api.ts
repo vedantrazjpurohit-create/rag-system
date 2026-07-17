@@ -12,9 +12,12 @@ import type {
 } from "./types";
 import { TenantUnavailableError, getTenantId } from "./tenant";
 
+/** Browser uses same-origin /api-proxy (keys stay on the server). Local SSR hits the API directly. */
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
-  (typeof window !== "undefined" ? "/api-proxy" : "http://127.0.0.1:8000");
+  (typeof window !== "undefined"
+    ? "/api-proxy"
+    : (process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8000").replace(/\/+$/, ""));
 
 function tenantHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra);

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_ORIGIN = process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8000";
+// Direct API root (http://127.0.0.1:8000) or monorepo path
+// (https://your-render-app.onrender.com/api-proxy) both work.
+const API_ORIGIN = (process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8000").replace(
+  /\/+$/,
+  "",
+);
 
 function targetUrl(pathSegments: string[], search: string): string {
-  const path = pathSegments.length ? `/${pathSegments.join("/")}` : "/";
-  const url = new URL(path, API_ORIGIN);
+  const suffix = pathSegments.length ? `/${pathSegments.join("/")}` : "/";
+  const url = new URL(`${API_ORIGIN}${suffix}`);
   url.search = search;
   return url.toString();
 }
