@@ -86,6 +86,12 @@ export interface Flashcard {
   source: string;
 }
 
+export interface WebSource {
+  title: string;
+  snippet: string;
+  provider: string;
+}
+
 export interface StudyResponse {
   mode: StudyMode;
   topic: string;
@@ -96,6 +102,10 @@ export interface StudyResponse {
   term?: string;
   cards?: Flashcard[];
   summary?: string;
+  sources?: WebSource[];
+  provider?: string;
+  search_error?: string | null;
+  matched_passages?: number;
   contexts?: RetrievedContext[];
   strategy?: Strategy;
 }

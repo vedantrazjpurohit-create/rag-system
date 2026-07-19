@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getAppConfig, runStudy } from "@/lib/api";
-import type { DocumentInfo, Flashcard, RetrievedContext, SearchHistoryEntry, StudyMode } from "@/lib/types";
+import type {
+  DocumentInfo,
+  Flashcard,
+  RetrievedContext,
+  SearchHistoryEntry,
+  StudyMode,
+  WebSource,
+} from "@/lib/types";
 
 import { IndexContextCard } from "./IndexContextCard";
 
@@ -11,7 +18,7 @@ const MODES: { id: StudyMode; label: string; hint: string }[] = [
   { id: "notes", label: "Notes", hint: "Generate study notes from your PDFs" },
   { id: "define", label: "Definition", hint: "Find a definition in your files" },
   { id: "flashcards", label: "Flashcards", hint: "Build Q&A cards to review" },
-  { id: "web", label: "Web", hint: "Background paragraph — no links" },
+  { id: "web", label: "Web", hint: "Live background from Wikipedia / the web" },
 ];
 
 const HISTORY_KEY = "index-search-history-v1";
@@ -45,22 +52,36 @@ export function IndexLearn({ documents }: IndexLearnProps) {
   const [definition, setDefinition] = useState<string | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [webSummary, setWebSummary] = useState<string | null>(null);
+  const [webSources, setWebSources] = useState<WebSource[]>([]);
+  const [webProvider, setWebProvider] = useState<string | null>(null);
+  const [webError, setWebError] = useState<string | null>(null);
+  const [matchedPassages, setMatchedPassages] = useState<number | null>(null);
   const [contexts, setContexts] = useState<RetrievedContext[]>([]);
   const [cardIndex, setCardIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
   const [llmEnabled, setLlmEnabled] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(true);
+  const [lastTopic, setLastTopic] = useState<string | null>(null);
 
   const docIds = useMemo(() => new Set(documents.map((d) => d.doc_id)), [documents]);
-  const visibleContexts = useMemo(
-    () => contexts.filter((ctx) => docIds.has(ctx.doc_id)),
-    [contexts, docIds],
-  );
+  const visibleContexts = useMemo(() => {
+    if (!contexts.length) return [];
+    const filtered = contexts.filter((ctx) => !ctx.doc_id || docIds.has(ctx.doc_id));
+    // If library list is stale / ids differ, still show what retrieval returned
+    return filtered.length > 0 ? filtered : contexts;
+  }, [contexts, docIds]);
 
   useEffect(() => {
     setHistory(loadHistory());
     getAppConfig()
-      .then((cfg) => setLlmEnabled(cfg.llm_enabled))
-      .catch(() => setLlmEnabled(false));
+      .then((cfg) => {
+        setLlmEnabled(cfg.llm_enabled);
+        setWebSearchEnabled(cfg.web_search_enabled !== false);
+      })
+      .catch(() => {
+        setLlmEnabled(false);
+        setWebSearchEnabled(true);
+      });
   }, []);
 
   const pushHistory = useCallback((entry: SearchHistoryEntry) => {
@@ -83,21 +104,69 @@ export function IndexLearn({ documents }: IndexLearnProps) {
     setLoading(true);
     setShowBack(false);
     setCardIndex(0);
+    setLastTopic(query);
+
+    // Clear previous primary result for this mode so stale text doesn't linger
+    if (chosen === "notes") setNotes(null);
+    if (chosen === "define") setDefinition(null);
+    if (chosen === "flashcards") setCards([]);
+    if (chosen === "web") {
+      setWebSummary(null);
+      setWebSources([]);
+      setWebProvider(null);
+      setWebError(null);
+    }
 
     try {
-      const result = await runStudy({ mode: chosen, topic: query, count: 8 });
-      setNotes(result.notes ?? null);
-      setDefinition(result.definition ?? null);
-      setCards(result.cards ?? []);
-      setWebSummary(result.summary ?? null);
-      setContexts(result.contexts ?? []);
+      if (chosen === "web") {
+        const web = await runStudy({ mode: "web", topic: query });
+        setWebSummary(web.summary ?? null);
+        setWebSources(web.sources ?? []);
+        setWebProvider(web.provider ?? null);
+        setWebError(web.search_error ?? null);
+        setContexts([]);
+        setMatchedPassages(null);
+        setNotes(null);
+        setDefinition(null);
+        setCards([]);
+      } else {
+        // Library + web background in parallel so notes aren't blocked by web search
+        const [library, web] = await Promise.all([
+          runStudy({ mode: chosen, topic: query, count: 8, top_k: 8 }),
+          webSearchEnabled
+            ? runStudy({ mode: "web", topic: query }).catch((err: unknown) => {
+                return {
+                  summary: null,
+                  sources: [] as WebSource[],
+                  provider: "none",
+                  search_error: err instanceof Error ? err.message : "Web search failed",
+                };
+              })
+            : Promise.resolve({
+                summary: "Web search is disabled on this server.",
+                sources: [] as WebSource[],
+                provider: "none",
+                search_error: "web_search_disabled",
+              }),
+        ]);
 
-      if (chosen !== "web") {
-        try {
-          const web = await runStudy({ mode: "web", topic: query });
-          setWebSummary(web.summary ?? null);
-        } catch {
-          /* web background is optional */
+        setNotes(library.notes ?? null);
+        setDefinition(library.definition ?? null);
+        setCards(library.cards ?? []);
+        setContexts(library.contexts ?? []);
+        setMatchedPassages(
+          typeof library.matched_passages === "number"
+            ? library.matched_passages
+            : (library.contexts?.length ?? 0),
+        );
+
+        setWebSummary(web.summary ?? null);
+        setWebSources(web.sources ?? []);
+        setWebProvider(web.provider ?? null);
+        setWebError(web.search_error ?? null);
+
+        if (chosen === "notes" && !library.notes) {
+          setError("Notes came back empty — upload PDFs that cover this topic, then try again.");
         }
       }
 
@@ -115,17 +184,28 @@ export function IndexLearn({ documents }: IndexLearnProps) {
   }
 
   const activeCard = cards[cardIndex];
+  const hasPrimary =
+    (mode === "notes" && !!notes) ||
+    (mode === "define" && !!definition) ||
+    (mode === "flashcards" && cards.length > 0) ||
+    (mode === "web" && !!webSummary);
 
   return (
     <div className="sample-fade-in space-y-4">
       <section className="sample-card p-6">
         <h2 className="sample-heading text-xl text-[var(--sample-text)]">Learn from your library</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--sample-muted)]">
-          Generate notes, pull definitions, build flashcards, and read a short web background — all
-          from what you search. Web results are plain paragraphs, not links.
+          Notes, definitions, and flashcards come from your uploaded PDFs. Web pulls a live background
+          paragraph (Wikipedia / DuckDuckGo) so you can compare with your files — titles shown, no
+          open links.
         </p>
         <p className="mt-2 text-xs text-[var(--sample-dim)]">
           {llmEnabled ? "Full generation · Grok enabled" : "Template mode · add XAI_API_KEY for richer output"}
+          {" · "}
+          {webSearchEnabled ? "Live web search on" : "Web search disabled"}
+          {documents.length === 0
+            ? " · No PDFs indexed yet — notes need an upload first"
+            : ` · ${documents.length} file${documents.length === 1 ? "" : "s"} in library`}
         </p>
       </section>
 
@@ -193,11 +273,20 @@ export function IndexLearn({ documents }: IndexLearnProps) {
                 </button>
               ))}
             </div>
+            {lastTopic && matchedPassages !== null && mode !== "web" && (
+              <p className="mt-2 text-xs text-[var(--sample-dim)]">
+                Last run for “{lastTopic}”: {matchedPassages} matching passage
+                {matchedPassages === 1 ? "" : "s"} from your files
+              </p>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-5">
             {loading && (
-              <p className="text-sm text-[var(--sample-dim)]">Working on your {modeLabel(mode).toLowerCase()}…</p>
+              <p className="text-sm text-[var(--sample-dim)]">
+                Working on your {modeLabel(mode).toLowerCase()}
+                {mode !== "web" ? " and live web background" : ""}…
+              </p>
             )}
             {!loading && mode === "notes" && notes && (
               <article className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--sample-text)]">
@@ -251,13 +340,20 @@ export function IndexLearn({ documents }: IndexLearnProps) {
               </div>
             )}
             {!loading && mode === "web" && webSummary && (
-              <article className="text-sm leading-relaxed text-[var(--sample-text)]">{webSummary}</article>
+              <div className="space-y-4">
+                <article className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--sample-text)]">
+                  {webSummary}
+                </article>
+                {webProvider && webProvider !== "none" && (
+                  <p className="text-xs text-[var(--sample-dim)]">Live provider: {webProvider}</p>
+                )}
+              </div>
             )}
-            {!loading && !notes && !definition && !cards.length && !webSummary && (
+            {!loading && !hasPrimary && (
               <p className="text-sm text-[var(--sample-muted)]">
                 {documents.length === 0 && mode !== "web"
-                  ? "Upload PDFs first, then generate notes, definitions, or flashcards."
-                  : "Enter a topic below — e.g. “equilibrium”, “chapter 3 moments”, or “PID controller”."}
+                  ? "Upload PDFs on the Workspace tab first, then generate notes, definitions, or flashcards here."
+                  : "Enter a topic below — e.g. “force”, “equilibrium”, or “PID controller” — and press Go."}
               </p>
             )}
           </div>
@@ -275,12 +371,12 @@ export function IndexLearn({ documents }: IndexLearnProps) {
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder={
                   mode === "define"
-                    ? "Term to define — e.g. resultant force-couple"
+                    ? "Term to define — e.g. resultant force"
                     : mode === "flashcards"
                       ? "Topic for flashcards — e.g. control systems"
                       : mode === "web"
-                        ? "Search the web for background — e.g. Nyquist stability"
-                        : "Topic for notes — e.g. summarize chapter 3"
+                        ? "Search the web — e.g. force physics"
+                        : "Topic for notes — e.g. force or chapter 3 moments"
                 }
                 className="sample-input min-w-0 flex-1"
               />
@@ -300,24 +396,56 @@ export function IndexLearn({ documents }: IndexLearnProps) {
           <p className="text-sm font-medium text-[var(--sample-text)]">From your files</p>
           {visibleContexts.length === 0 ? (
             <p className="sample-card-inset px-3 py-4 text-center text-xs text-[var(--sample-muted)]">
-              File sources appear for notes, definitions, and flashcards
+              {mode === "web"
+                ? "Switch to Notes / Definition / Flashcards to pull file passages"
+                : matchedPassages === 0
+                  ? "No passages matched — try a shorter keyword or upload a better PDF"
+                  : "File sources appear here after you generate notes, definitions, or flashcards"}
             </p>
           ) : (
             visibleContexts.map((ctx, idx) => (
-              <IndexContextCard key={ctx.chunk_id} context={ctx} rank={idx + 1} />
+              <IndexContextCard key={ctx.chunk_id ?? `${ctx.doc_id}-${idx}`} context={ctx} rank={idx + 1} />
             ))
           )}
         </aside>
 
         <aside className="space-y-3">
-          <p className="text-sm font-medium text-[var(--sample-text)]">From the web</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-[var(--sample-text)]">From the web</p>
+            {webProvider && webProvider !== "none" && (
+              <span className="rounded-full bg-[var(--sample-highlight)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--sample-dim)]">
+                {webProvider}
+              </span>
+            )}
+          </div>
           {webSummary ? (
-            <article className="sample-card p-4">
-              <p className="text-sm leading-relaxed text-[var(--sample-muted)]">{webSummary}</p>
-            </article>
+            <div className="space-y-3">
+              <article className="sample-card p-4">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--sample-muted)]">
+                  {webSummary}
+                </p>
+              </article>
+              {webSources.length > 0 && (
+                <ul className="space-y-2">
+                  {webSources.map((src, idx) => (
+                    <li key={`${src.provider}-${src.title}-${idx}`} className="sample-card-inset px-3 py-2.5">
+                      <p className="text-xs font-medium text-[var(--sample-text)]">{src.title}</p>
+                      <p className="mt-1 line-clamp-4 text-xs leading-relaxed text-[var(--sample-muted)]">
+                        {src.snippet}
+                      </p>
+                      <p className="mt-1 text-[10px] uppercase tracking-wide text-[var(--sample-dim)]">
+                        {src.provider}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           ) : (
             <p className="sample-card-inset px-3 py-4 text-center text-xs text-[var(--sample-muted)]">
-              A short background paragraph shows here — no links, just context
+              {webError
+                ? `Web search issue: ${webError}`
+                : "A live background paragraph and source cards show here after you press Go"}
             </p>
           )}
         </aside>

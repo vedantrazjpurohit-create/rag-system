@@ -151,13 +151,7 @@ def is_formula_heavy(text: str) -> bool:
     return symbol_hits >= 3 and len(content_words) < 2
 
 
-def best_prose_sentence(text: str, term: str | None) -> str | None:
-    if not term:
-        return None
-    term_l = term.lower().strip()
-    if not term_l:
-        return None
-
+def best_prose_sentence(text: str, term: str | None = None) -> str | None:
     candidates: list[str] = []
     for part in re.split(r"(?<=[.!?])\s+|\n+", text):
         line = part.strip()
@@ -169,14 +163,20 @@ def best_prose_sentence(text: str, term: str | None) -> str | None:
             continue
         if _SYMBOL_HEAVY.match(line):
             continue
+        if is_formula_heavy(line):
+            continue
         candidates.append(line)
 
-    for line in candidates:
-        if term_l in line.lower():
-            return line
+    if not candidates:
+        return None
 
-    for line in candidates:
-        if term_l[: min(5, len(term_l))] in line.lower():
-            return line
+    term_l = (term or "").lower().strip()
+    if term_l:
+        for line in candidates:
+            if term_l in line.lower():
+                return line
+        for line in candidates:
+            if term_l[: min(5, len(term_l))] in line.lower():
+                return line
 
-    return candidates[0] if candidates else None
+    return candidates[0]
