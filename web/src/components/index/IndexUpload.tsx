@@ -42,11 +42,14 @@ export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
 
     try {
       const results = [];
+      let totalChunks = 0;
       for (const file of allowed) {
-        results.push(await ingestFile(file));
+        const result = await ingestFile(file);
+        results.push(result);
+        totalChunks += result.chunks_indexed ?? 0;
       }
       setMessage(
-        `Added ${results.length} file${results.length === 1 ? "" : "s"} — ready to search.`,
+        `Added ${results.length} file${results.length === 1 ? "" : "s"} (${totalChunks} chunks) — ready to search.`,
       );
       onUploaded();
     } catch (err) {

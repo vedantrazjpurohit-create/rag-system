@@ -86,14 +86,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     });
   } catch {
     throw new Error(
-      "Server unreachable — it may have restarted under memory pressure. Wait ~30s and try again.",
+      "Server unreachable — wait ~30s for Render free tier to wake, then try again.",
     );
   }
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(formatError(response.status, detail));
   }
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  if (!text) {
+    return {} as T;
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      `API returned non-JSON for ${path}. Check Vercel API_PROXY_TARGET (use …/api-proxy if Render is still the monorepo app).`,
+    );
+  }
 }
 
 export function getHealth(): Promise<{ status: string }> {
@@ -109,10 +119,22 @@ export function listDocuments(): Promise<{ documents: DocumentInfo[] }> {
 }
 
 export async function ingestFile(file: File): Promise<IngestResponse> {
+  if (file.size <= 0) {
+    throw new Error("File is empty.");
+  }
+  // Vercel serverless request body limit is ~4.5MB on Hobby.
+  if (file.size > 4.5 * 1024 * 1024) {
+    throw new Error("File is too large for upload through Vercel (max ~4.5MB). Use a smaller PDF.");
+  }
   const form = new FormData();
   form.append("file", file, file.name);
+  // Only tenant header — never set Content-Type; browser must set multipart boundary.
   const headers = tenantHeaders();
-  return request("/ingest", { method: "POST", headers, body: form });
+  const result = await request<IngestResponse>("/ingest", { method: "POST", headers, body: form });
+  if (!result?.doc_id && !result?.chunks_indexed) {
+    throw new Error("Upload response was incomplete — the API may still be waking up. Try again.");
+  }
+  return result;
 }
 
 export function queryDocuments(

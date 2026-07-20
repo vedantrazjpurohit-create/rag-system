@@ -24,6 +24,7 @@ ENV LOW_MEMORY_MODE=true
 ENV DEFAULT_STRATEGY=bm25
 ENV ALLOW_VERCEL_PREVIEWS=true
 ENV TRUST_PROXY_HEADERS=true
+ENV PDF_PARSE_IN_PROCESS=true
 
 RUN mkdir -p /app/.hf_cache /app/data/chroma \
     && python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')" \

@@ -21,13 +21,17 @@ export default function Home() {
 
   const indexedCount = useMemo(() => documents.length, [documents]);
 
+  const [docsError, setDocsError] = useState<string | null>(null);
+
   const refreshDocuments = useCallback(async () => {
     setDocsLoading(true);
+    setDocsError(null);
     try {
       const response = await listDocuments();
-      setDocuments(response.documents);
-    } catch {
-      setDocuments([]);
+      setDocuments(response.documents ?? []);
+    } catch (err) {
+      // Do not silently wipe the list on a transient failure after upload
+      setDocsError(err instanceof Error ? err.message : "Could not load your library");
     } finally {
       setDocsLoading(false);
     }
@@ -71,11 +75,26 @@ export default function Home() {
         )}
         {apiOnline === false && (
           <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-[var(--sample-muted)]">
-            API offline. Run{" "}
+            API offline. On Vercel, set{" "}
+            <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
+              API_PROXY_TARGET
+            </code>{" "}
+            to{" "}
+            <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
+              https://YOUR-RENDER.onrender.com/api-proxy
+            </code>{" "}
+            (include <code className="font-mono text-xs">/api-proxy</code> if Render still runs the
+            full site), plus matching <code className="font-mono text-xs">RAG_API_KEY</code>. Locally
+            run{" "}
             <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
               .\launch.ps1
-            </code>{" "}
-            locally or deploy to Render for a public URL.
+            </code>
+            .
+          </div>
+        )}
+        {docsError && apiOnline && (
+          <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-red-700/80">
+            Library sync failed: {docsError}
           </div>
         )}
 
