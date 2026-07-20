@@ -2,11 +2,15 @@ import type { NextConfig } from "next";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const root = path.dirname(fileURLToPath(import.meta.url));
+// Next requires outputFileTracingRoot and turbopack.root to be identical.
+// Use the monorepo root (parent of web/) so both match Next's monorepo detection.
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const monorepoRoot = path.resolve(appDir, "..");
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: monorepoRoot,
   turbopack: {
-    root,
+    root: monorepoRoot,
   },
   experimental: {
     proxyClientMaxBodySize: "10mb",
