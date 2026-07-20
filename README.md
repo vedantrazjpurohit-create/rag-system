@@ -64,69 +64,46 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
-## Deploy (live demo)
+## Deploy (live demo) — Vercel only
 
-**Stack:** Render (API only) + Vercel (Next.js UI). The UI loads fast from Vercel; the API stays on Render for Chroma/PDF/embeddings.
+The production app is a **single Next.js project** on Vercel. Upload, search, notes, and web background all run in Next.js API routes (`/api-proxy/*`). No Render required.
 
-### 1. Deploy API on Render
+### Deploy
 
-1. Go to [render.com](https://render.com) → **New** → **Blueprint** (or update an existing service)
-2. Connect `vedantrazjpurohit-create/rag-system`
-3. Render uses `Dockerfile.api` + `render.yaml` (Python API only — no Next.js in the image)
-4. After deploy, copy the URL (e.g. `https://contextiq-dpz3.onrender.com`)
-5. In Render **Environment**, set at least:
-   - `RAG_API_KEY` / `RAG_ADMIN_KEY` (strong secrets)
-   - `XAI_API_KEY` = optional, for Grok answers
-   - `FRONTEND_URL` = your Vercel URL (after step 2)
-   - `ALLOW_VERCEL_PREVIEWS=true` (already in `render.yaml`)
-
-Health check: `GET /health`
-
-### 2. Deploy web on Vercel (Next.js only — not the Python API)
-
-Vercel hosts **only** the UI in `web/`. The FastAPI backend stays on Render.
-
-1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project**
+1. [vercel.com](https://vercel.com) → **Add New** → **Project**
 2. Import `vedantrazjpurohit-create/rag-system`
-3. **Before** the first deploy, open **Root Directory** → **Edit** → set to **`web`** → Continue  
-   - Framework Preset should be **Next.js** (not FastAPI / Python / Other)
-4. Add **server** environment variables (Production + Preview):
+3. **Root Directory** = **`web`**
+4. Framework = **Next.js**
+5. Environment variables (optional but recommended):
 
-| Variable | Value |
-|----------|--------|
-| `API_PROXY_TARGET` | Your Render API origin, e.g. `https://contextiq-dpz3.onrender.com` |
-| `RAG_API_KEY` | Same as Render |
-| `RAG_ADMIN_KEY` | Same as Render |
+| Key | Value |
+|-----|--------|
+| `XAI_API_KEY` | from [console.x.ai](https://console.x.ai) for full Grok answers |
+| `XAI_MODEL` | `grok-4.5` |
+| `RAG_API_KEY` | optional lock for external callers |
+| `RAG_ADMIN_KEY` | optional |
 
-Do **not** set `NEXT_PUBLIC_API_URL` on Vercel — the browser should call same-origin `/api-proxy`, which injects API keys server-side.
+Do **not** set `NEXT_PUBLIC_API_URL` or `API_PROXY_TARGET` — the app uses same-origin `/api-proxy`.
 
-5. Deploy → copy your Vercel URL (e.g. `https://rag-system.vercel.app`)
-
-#### If you see `No FastAPI entrypoint found…`
-
-Vercel tried to deploy Python. Fix the **existing** project:
-
-1. Project → **Settings** → **General**
-2. **Framework Preset** → **Next.js**
-3. **Root Directory** → **`web`** → Save
-4. **Deployments** → **Redeploy** (clear cache if available)
-
-Or delete the project and re-import with Root Directory = `web` from the start.
-
-### 3. Link them
-
-1. Render → set `FRONTEND_URL` = `https://your-app.vercel.app` → redeploy API if needed
-2. Open the Vercel URL — UI should load immediately; first API call may wait on Render free-tier cold start
+6. Deploy → open `https://your-app.vercel.app`
 
 ### Verify
 
 | Check | URL |
 |-------|-----|
-| API health | `https://<api>/health` |
-| Live site | `https://<vercel>/` |
-| Proxy health | `https://<vercel>/api-proxy/health` |
+| Site | `https://<vercel>/` |
+| Health | `https://<vercel>/api-proxy/health` |
 
-Add both URLs to your GitHub README and LinkedIn.
+### Notes
+
+- Retrieval is **BM25** (keyword) in-process — fast, no Chroma/embedder bundle.
+- Index is stored in memory (+ `/tmp` on the instance). **Cold starts can empty uploads** on free serverless; re-upload if the library looks empty after idle.
+- Max upload ~4.5MB on Vercel Hobby.
+- Local Python FastAPI (`api/`) still works for full eval/hybrid experiments via `.\launch.ps1`.
+
+#### If you see `No FastAPI entrypoint found…`
+
+Set **Root Directory** = `web` and **Framework** = **Next.js**, then redeploy.
 
 | Endpoint | What it does |
 |----------|--------------|

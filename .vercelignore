@@ -1,4 +1,4 @@
-# Backend stays on Render — do not upload Python to Vercel
+# Full stack runs in web/ (Next.js). Skip Python API / eval from the Vercel upload.
 api
 eval
 data

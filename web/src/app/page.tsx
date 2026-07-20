@@ -75,21 +75,11 @@ export default function Home() {
         )}
         {apiOnline === false && (
           <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-[var(--sample-muted)]">
-            API offline. On Vercel, set{" "}
+            API offline. On Vercel this should be same-origin — try a hard refresh. Locally run{" "}
             <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
-              API_PROXY_TARGET
+              cd web && npm run dev
             </code>{" "}
-            to{" "}
-            <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
-              https://YOUR-RENDER.onrender.com/api-proxy
-            </code>{" "}
-            (include <code className="font-mono text-xs">/api-proxy</code> if Render still runs the
-            full site), plus matching <code className="font-mono text-xs">RAG_API_KEY</code>. Locally
-            run{" "}
-            <code className="rounded bg-[var(--sample-highlight)] px-1.5 py-0.5 font-mono text-xs">
-              .\launch.ps1
-            </code>
-            .
+            (or <code className="font-mono text-xs">.\launch.ps1</code> for the Python API).
           </div>
         )}
         {docsError && apiOnline && (

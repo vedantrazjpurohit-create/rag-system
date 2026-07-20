@@ -12,12 +12,13 @@ import type {
 } from "./types";
 import { TenantUnavailableError, getTenantId } from "./tenant";
 
-/** Browser uses same-origin /api-proxy (keys stay on the server). Local SSR hits the API directly. */
+/**
+ * Default: same-origin /api-proxy (full stack on Vercel Next.js).
+ * Override with NEXT_PUBLIC_API_URL only for local Python API (http://127.0.0.1:8000).
+ */
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
-  (typeof window !== "undefined"
-    ? "/api-proxy"
-    : (process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8000").replace(/\/+$/, ""));
+  (typeof window !== "undefined" ? "/api-proxy" : "/api-proxy");
 
 function tenantHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra);
