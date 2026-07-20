@@ -82,11 +82,14 @@ docker compose up --build
 
 Health check: `GET /health`
 
-### 2. Deploy web on Vercel
+### 2. Deploy web on Vercel (Next.js only — not the Python API)
+
+Vercel hosts **only** the UI in `web/`. The FastAPI backend stays on Render.
 
 1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project**
 2. Import `vedantrazjpurohit-create/rag-system`
-3. Set **Root Directory** = `web` (important)
+3. **Before** the first deploy, open **Root Directory** → **Edit** → set to **`web`** → Continue  
+   - Framework Preset should be **Next.js** (not FastAPI / Python / Other)
 4. Add **server** environment variables (Production + Preview):
 
 | Variable | Value |
@@ -98,6 +101,17 @@ Health check: `GET /health`
 Do **not** set `NEXT_PUBLIC_API_URL` on Vercel — the browser should call same-origin `/api-proxy`, which injects API keys server-side.
 
 5. Deploy → copy your Vercel URL (e.g. `https://rag-system.vercel.app`)
+
+#### If you see `No FastAPI entrypoint found…`
+
+Vercel tried to deploy Python. Fix the **existing** project:
+
+1. Project → **Settings** → **General**
+2. **Framework Preset** → **Next.js**
+3. **Root Directory** → **`web`** → Save
+4. **Deployments** → **Redeploy** (clear cache if available)
+
+Or delete the project and re-import with Root Directory = `web` from the start.
 
 ### 3. Link them
 

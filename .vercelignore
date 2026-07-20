@@ -1,0 +1,17 @@
+# Backend stays on Render — do not upload Python to Vercel
+api
+eval
+data
+results
+scripts
+.github
+.hf_cache
+.pytest_tmp
+.venv
+requirements.txt
+requirements-prod.txt
+Dockerfile
+Dockerfile.api
+Dockerfile.site
+render.yaml
+docker-compose.yml

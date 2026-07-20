@@ -1,0 +1,13 @@
+{
+  "name": "rag-system",
+  "private": true,
+  "description": "Frontend is in web/. Deploy that folder on Vercel (Root Directory = web). API runs on Render.",
+  "scripts": {
+    "build": "npm run build --prefix web",
+    "dev": "npm run dev --prefix web",
+    "start": "npm run start --prefix web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
