@@ -59,7 +59,6 @@ export function IndexLearn({ documents }: IndexLearnProps) {
   const [contexts, setContexts] = useState<RetrievedContext[]>([]);
   const [cardIndex, setCardIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
-  const [llmEnabled, setLlmEnabled] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(true);
   const [lastTopic, setLastTopic] = useState<string | null>(null);
 
@@ -75,11 +74,9 @@ export function IndexLearn({ documents }: IndexLearnProps) {
     setHistory(loadHistory());
     getAppConfig()
       .then((cfg) => {
-        setLlmEnabled(cfg.llm_enabled);
         setWebSearchEnabled(cfg.web_search_enabled !== false);
       })
       .catch(() => {
-        setLlmEnabled(false);
         setWebSearchEnabled(true);
       });
   }, []);
@@ -198,19 +195,6 @@ export function IndexLearn({ documents }: IndexLearnProps) {
     <div className="sample-fade-in space-y-4">
       <section className="sample-card p-6">
         <h2 className="sample-heading text-xl text-[var(--sample-text)]">Learn from your library</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--sample-muted)]">
-          Notes, definitions, and flashcards come from PDFs you uploaded on the Workspace tab (same
-          browser). We re-sync your library before each search so Learn sees the same files. Web
-          background is separate (Wikipedia / DuckDuckGo).
-        </p>
-        <p className="mt-2 text-xs text-[var(--sample-dim)]">
-          {llmEnabled ? "Full generation · Grok enabled" : "Template mode · add XAI_API_KEY for richer output"}
-          {" · "}
-          {webSearchEnabled ? "Live web search on" : "Web search disabled"}
-          {documents.length === 0
-            ? " · No PDFs indexed yet — notes need an upload first"
-            : ` · ${documents.length} file${documents.length === 1 ? "" : "s"} in library`}
-        </p>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[190px_1fr_230px_230px]">

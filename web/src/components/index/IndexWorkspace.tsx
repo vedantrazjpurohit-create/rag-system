@@ -2,19 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { getAppConfig, queryStream } from "@/lib/api";
-import type { DocumentInfo, QueryResponse, RetrievedContext, Strategy } from "@/lib/types";
+import { queryStream } from "@/lib/api";
+import type { DocumentInfo, QueryResponse, RetrievedContext } from "@/lib/types";
 
 import { EngineeringText, normalizeForDisplay } from "./EngineeringText";
 import { IndexContextCard } from "./IndexContextCard";
 import { IndexUpload } from "./IndexUpload";
-
-const STRATEGIES: { id: Strategy; label: string }[] = [
-  { id: "router", label: "Auto" },
-  { id: "bm25", label: "Keywords" },
-  { id: "vector", label: "Semantic" },
-  { id: "hybrid", label: "Hybrid" },
-];
 
 const ASK_PLACEHOLDER =
   "Ask in plain language — e.g. what is resultant force-couple, define equilibrium, summarize chapter 3…";
@@ -50,8 +43,6 @@ export function IndexWorkspace({
   focusNonce = 0,
 }: IndexWorkspaceProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [strategy, setStrategy] = useState<Strategy>("bm25");
-  const [llmEnabled, setLlmEnabled] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,15 +77,6 @@ export function IndexWorkspace({
   }, [messages]);
 
   useEffect(() => {
-    getAppConfig()
-      .then((cfg) => {
-        setLlmEnabled(cfg.llm_enabled);
-        if (cfg.default_strategy) setStrategy(cfg.default_strategy);
-      })
-      .catch(() => setLlmEnabled(false));
-  }, []);
-
-  useEffect(() => {
     if (focusNonce > 0) inputRef.current?.focus();
   }, [focusNonce]);
 
@@ -113,7 +95,7 @@ export function IndexWorkspace({
     let streamed = "";
     let retrieved: RetrievedContext[] = [];
     try {
-      await queryStream(question, strategy, {
+      await queryStream(question, "bm25", {
         onMeta: (meta) => {
           retrieved = meta.contexts;
           setContexts(meta.contexts);
@@ -237,27 +219,6 @@ export function IndexWorkspace({
               Clear chat
             </button>
           </div>
-          <p className="mb-2 text-xs text-[var(--sample-dim)]">
-            {llmEnabled
-              ? "Streaming · Grok (xAI)"
-              : "Template excerpts · set XAI_API_KEY on Render for full answers"}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {STRATEGIES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setStrategy(item.id)}
-                className={`sample-btn px-2.5 py-1 text-xs ${
-                  strategy === item.id
-                    ? "sample-btn-outline ring-1 ring-[var(--sample-border-strong)]"
-                    : "sample-btn-ghost"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-5">
@@ -273,12 +234,6 @@ export function IndexWorkspace({
               )}
               {msg.streaming && (
                 <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-[var(--sample-dim)]" />
-              )}
-              {msg.meta && !msg.streaming && (
-                <p className="mt-2 text-xs text-[var(--sample-dim)]">
-                  {msg.meta.strategy} · {msg.meta.answer_mode} · retrieve {msg.meta.timing_ms.retrieve}
-                  ms · gen {msg.meta.timing_ms.generate}ms
-                </p>
               )}
             </div>
           ))}
