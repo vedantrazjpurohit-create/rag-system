@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 type Tab = "demo" | "eval" | "safety" | "about";
 
 interface HeaderProps {
@@ -13,12 +15,17 @@ export function Header({ activeTab, onTabChange, apiOnline }: HeaderProps) {
     <header className="border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/30">
-            <span className="font-mono text-sm font-bold text-emerald-300">R</span>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="RAGVED"
+            width={36}
+            height={36}
+            className="h-9 w-9 object-contain"
+            priority
+          />
           <div>
             <h1 className="text-sm font-semibold tracking-wide text-slate-100 sm:text-base">
-              RAG System
+              RAGVED
             </h1>
             <p className="text-xs text-slate-500">Upload · Query · Measure retrieval</p>
           </div>

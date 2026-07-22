@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 export type SampleTab = "workspace" | "learn" | "library" | "compare" | "review";
 
 interface SampleHeaderProps {
@@ -18,10 +20,20 @@ const TABS: { id: SampleTab; label: string }[] = [
 export function SampleHeader({ active, onChange }: SampleHeaderProps) {
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--sample-border)] bg-[var(--sample-bg)]/92 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-5 py-4">
-        <div>
-          <p className="sample-heading text-lg text-[var(--sample-text)]">Index</p>
-          <p className="text-sm text-[var(--sample-muted)]">your course PDFs, in one place</p>
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-5 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="RAGVED"
+            width={48}
+            height={48}
+            priority
+            className="h-11 w-11 shrink-0 object-contain"
+          />
+          <div className="min-w-0">
+            <p className="sample-heading text-lg leading-tight text-[var(--sample-text)]">RAGVED</p>
+            <p className="truncate text-sm text-[var(--sample-muted)]">your course PDFs, in one place</p>
+          </div>
         </div>
 
         <nav className="hidden items-center gap-1 sm:flex">

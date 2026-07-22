@@ -21,13 +21,19 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Index — your course PDFs, in one place",
+  metadataBase: new URL(process.env.FRONTEND_URL || "https://localhost:3000"),
+  title: "RAGVED — your course PDFs, in one place",
   description:
     "Upload lecture PDFs, ask in plain language, and get answers with the page they came from.",
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    apple: [{ url: "/logo.png", type: "image/png" }],
+  },
   openGraph: {
-    title: "Index — ask your notes like a friend who read the chapter",
+    title: "RAGVED — ask your notes like a friend who read the chapter",
     description: "Drop in PDFs, ask definitions, formulas, or summaries — with sources.",
     type: "website",
+    images: [{ url: "/logo.png", width: 642, height: 507, alt: "RAGVED" }],
   },
 };
 
