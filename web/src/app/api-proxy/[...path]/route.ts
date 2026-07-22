@@ -145,9 +145,21 @@ async function handle(
         question?: string;
         top_k?: number;
         strategy?: string;
+        documents?: { source: string; text: string; doc_id?: string }[];
       };
       const question = (body.question || "").trim();
       if (question.length < 3) return err(422, "Question too short");
+      // Same-request corpus: never trust a prior /sync on another Vercel instance
+      if (Array.isArray(body.documents) && body.documents.length) {
+        await syncDocuments(
+          tenant,
+          body.documents.slice(0, 20).map((d) => ({
+            source: String(d.source || "upload").slice(0, 200),
+            text: String(d.text || "").slice(0, 500_000),
+            doc_id: d.doc_id,
+          })),
+        );
+      }
       const topK = Math.min(20, Math.max(1, body.top_k || 5));
       const t0 = performance.now();
       const hits = await search(question, tenant, topK);
@@ -229,6 +241,7 @@ async function handle(
         topic?: string;
         top_k?: number;
         count?: number;
+        documents?: { source: string; text: string; doc_id?: string }[];
       };
       const mode = body.mode || "notes";
       const topic = (body.topic || "").trim();
@@ -250,6 +263,17 @@ async function handle(
           answer_mode: llmEnabled() && web.snippets.length ? "llm" : "template",
           timing_ms: { total: Math.round((performance.now() - started) * 100) / 100 },
         });
+      }
+
+      if (Array.isArray(body.documents) && body.documents.length) {
+        await syncDocuments(
+          tenant,
+          body.documents.slice(0, 20).map((d) => ({
+            source: String(d.source || "upload").slice(0, 200),
+            text: String(d.text || "").slice(0, 500_000),
+            doc_id: d.doc_id,
+          })),
+        );
       }
 
       const topK = Math.min(20, Math.max(1, body.top_k || 8));

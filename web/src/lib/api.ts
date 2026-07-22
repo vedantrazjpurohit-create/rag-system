@@ -133,42 +133,67 @@ export async function ingestFile(file: File): Promise<IngestResponse> {
   // Only tenant header — never set Content-Type; browser must set multipart boundary.
   const headers = tenantHeaders();
   const result = await request<IngestResponse>("/ingest", { method: "POST", headers, body: form });
-  if (!result?.doc_id && !result?.chunks_indexed) {
-    throw new Error("Upload response was incomplete — the API may still be waking up. Try again.");
+  if (!result?.chunks_indexed) {
+    throw new Error(
+      "Upload indexed 0 chunks — the file may have no extractable text (scanned PDF). Try a text PDF or .txt/.md.",
+    );
   }
-  // Keep a browser copy so Learn/chat still work after Vercel instance hops
-  if (result.text && result.doc_id) {
-    try {
-      await saveLocalDocument({
-        doc_id: result.doc_id,
-        source: result.source || file.name,
-        text: result.text,
-        chunks_indexed: result.chunks_indexed ?? 0,
-      });
-    } catch {
-      /* storage full — server index still holds this request's data */
-    }
+  if (!result.text?.trim()) {
+    throw new Error("Upload succeeded but no text was returned for browser cache. Try again.");
+  }
+  // Required for Vercel: every later query attaches this text in the same HTTP request
+  try {
+    await saveLocalDocument({
+      doc_id: result.doc_id || crypto.randomUUID(),
+      source: result.source || file.name,
+      text: result.text,
+      chunks_indexed: result.chunks_indexed ?? 0,
+    });
+  } catch {
+    throw new Error(
+      "Could not save the file in this browser (storage blocked or full). Allow site data / try another browser.",
+    );
   }
   return result;
 }
 
-/** Push browser-cached PDFs back onto the server index (fixes empty Learn after cold start). */
+/** Browser-cached PDFs to attach on the same request as query/study (required on Vercel). */
+async function localDocumentsPayload(): Promise<{ source: string; text: string; doc_id: string }[]> {
+  try {
+    const local = await listLocalDocuments();
+    const out: { source: string; text: string; doc_id: string }[] = [];
+    let total = 0;
+    for (const d of local) {
+      if (!d.text?.trim()) continue;
+      if (out.length >= 8) break;
+      // Stay under Vercel ~4.5MB request body
+      const room = 3_500_000 - total;
+      if (room < 2000) break;
+      const text = d.text.slice(0, Math.min(400_000, room));
+      total += text.length;
+      out.push({ source: d.source, text, doc_id: d.doc_id });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** Optional warm-up; library list may still be empty on a cold instance until query carries docs. */
 export async function syncLocalCorpus(): Promise<{ synced: number; documents: DocumentInfo[] }> {
-  const local = await listLocalDocuments();
-  if (!local.length) {
-    const remote = await listDocuments();
-    return { synced: 0, documents: remote.documents ?? [] };
+  const documents = await localDocumentsPayload();
+  if (!documents.length) {
+    try {
+      const remote = await listDocuments();
+      return { synced: 0, documents: remote.documents ?? [] };
+    } catch {
+      return { synced: 0, documents: [] };
+    }
   }
   const result = await request<{ synced: number; documents: DocumentInfo[] }>("/sync", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      documents: local.map((d) => ({
-        source: d.source,
-        text: d.text,
-        doc_id: d.doc_id,
-      })),
-    }),
+    body: JSON.stringify({ documents }),
   });
   return {
     synced: result.synced ?? 0,
@@ -181,15 +206,11 @@ export async function queryDocuments(
   strategy: Strategy,
   topK = 5,
 ): Promise<QueryResponse> {
-  try {
-    await syncLocalCorpus();
-  } catch {
-    /* best-effort rehydrate */
-  }
+  const documents = await localDocumentsPayload();
   return request("/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, strategy, top_k: topK }),
+    body: JSON.stringify({ question, strategy, top_k: topK, documents }),
   });
 }
 
@@ -247,15 +268,17 @@ export async function queryStream(
   },
   topK = 5,
 ): Promise<void> {
-  try {
-    await syncLocalCorpus();
-  } catch {
-    /* best-effort rehydrate */
+  const documents = await localDocumentsPayload();
+  if (!documents.length) {
+    handlers.onError(
+      "No PDF text is cached in this browser. Upload your file again on Workspace, then ask.",
+    );
+    return;
   }
   const response = await fetch(`${API_BASE}/query/stream`, {
     method: "POST",
     headers: tenantHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ question, strategy, top_k: topK }),
+    body: JSON.stringify({ question, strategy, top_k: topK, documents }),
   });
 
   if (!response.ok || !response.body) {
@@ -304,13 +327,14 @@ export async function queryStream(
   }
 }
 
-export function runStudy(payload: {
+export async function runStudy(payload: {
   mode: StudyMode;
   topic: string;
   top_k?: number;
   count?: number;
   strategy?: Strategy;
 }): Promise<StudyResponse> {
+  const documents = payload.mode === "web" ? [] : await localDocumentsPayload();
   return request("/study", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -320,6 +344,7 @@ export function runStudy(payload: {
       top_k: payload.top_k ?? 8,
       count: payload.count ?? 8,
       strategy: payload.strategy,
+      documents,
     }),
   });
 }

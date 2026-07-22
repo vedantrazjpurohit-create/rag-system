@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getAppConfig, runStudy, syncLocalCorpus } from "@/lib/api";
+import { getAppConfig, runStudy } from "@/lib/api";
 import type {
   DocumentInfo,
   Flashcard,
@@ -130,14 +130,7 @@ export function IndexLearn({ documents }: IndexLearnProps) {
         setDefinition(null);
         setCards([]);
       } else {
-        // Re-sync browser PDF cache → this server instance (Vercel cold starts wipe memory)
-        try {
-          await syncLocalCorpus();
-        } catch {
-          /* continue; server may still have chunks */
-        }
-
-        // Library + web background in parallel so notes aren't blocked by web search
+        // Library + web in parallel. Notes/define attach browser PDF cache in the same request.
         const [library, web] = await Promise.all([
           runStudy({ mode: chosen, topic: query, count: 8, top_k: 8 }),
           webSearchEnabled

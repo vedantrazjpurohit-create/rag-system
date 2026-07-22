@@ -1,25 +1,12 @@
 import { createHash, randomUUID } from "crypto";
-import { promises as fs } from "fs";
-import path from "path";
-import { tmpdir } from "os";
 
 import { BM25Index } from "./bm25";
 import { normalizeEngineeringText } from "./normalize";
 import type { Chunk, DocumentInfo, SearchHit } from "./types";
 
-const STORE_PATH = path.join(tmpdir(), "contextiq-rag-store.json");
-
-type StoreData = {
-  chunks: Chunk[];
-  sourceDocIds: Record<string, string>;
-};
-
 type GlobalStore = {
   chunksById: Map<string, Chunk>;
   sourceDocIds: Map<string, string>;
-  bm25: BM25Index;
-  loaded: boolean;
-  loadPromise: Promise<void> | null;
 };
 
 function globalStore(): GlobalStore {
@@ -28,9 +15,6 @@ function globalStore(): GlobalStore {
     g.__contextiqStore = {
       chunksById: new Map(),
       sourceDocIds: new Map(),
-      bm25: new BM25Index(),
-      loaded: false,
-      loadPromise: null,
     };
   }
   return g.__contextiqStore;
@@ -61,50 +45,8 @@ function chunkText(text: string, size = 512, overlap = 64): string[] {
   return chunks;
 }
 
-function reindexBm25(store: GlobalStore): void {
-  store.bm25.indexChunks([...store.chunksById.values()]);
-}
-
-async function persist(store: GlobalStore): Promise<void> {
-  const data: StoreData = {
-    chunks: [...store.chunksById.values()],
-    sourceDocIds: Object.fromEntries(store.sourceDocIds),
-  };
-  try {
-    await fs.writeFile(STORE_PATH, JSON.stringify(data), "utf8");
-  } catch {
-    /* /tmp may be unavailable in some edge runtimes */
-  }
-}
-
-async function hydrate(store: GlobalStore): Promise<void> {
-  if (store.loaded) return;
-  if (store.loadPromise) return store.loadPromise;
-
-  store.loadPromise = (async () => {
-    try {
-      const raw = await fs.readFile(STORE_PATH, "utf8");
-      const data = JSON.parse(raw) as StoreData;
-      store.chunksById.clear();
-      for (const chunk of data.chunks || []) {
-        store.chunksById.set(chunk.id, chunk);
-      }
-      store.sourceDocIds = new Map(Object.entries(data.sourceDocIds || {}));
-      reindexBm25(store);
-    } catch {
-      /* first boot */
-    } finally {
-      store.loaded = true;
-    }
-  })();
-
-  return store.loadPromise;
-}
-
-export async function ensureStore(): Promise<GlobalStore> {
-  const store = globalStore();
-  await hydrate(store);
-  return store;
+function ensureStore(): GlobalStore {
+  return globalStore();
 }
 
 export function docIdForSource(store: GlobalStore, source: string, ownerId: string): string {
@@ -127,14 +69,13 @@ export async function ingestText(
   source: string,
   ownerId: string,
 ): Promise<{ chunks_indexed: number; doc_id: string; source: string; index_mode: string; text: string }> {
-  const store = await ensureStore();
+  const store = ensureStore();
   const cleaned = normalizeEngineeringText(text);
-  const pieces = chunkText(cleaned).map((c) => normalizeEngineeringText(c));
+  const pieces = chunkText(cleaned).map((c) => normalizeEngineeringText(c)).filter(Boolean);
   if (!pieces.length) {
     return { chunks_indexed: 0, doc_id: "", source, index_mode: "bm25", text: cleaned };
   }
 
-  // Replace existing source for this tenant
   for (const [id, chunk] of [...store.chunksById.entries()]) {
     if (chunk.owner_id === ownerId && chunk.source === source) {
       store.chunksById.delete(id);
@@ -155,20 +96,17 @@ export async function ingestText(
     });
   }
 
-  reindexBm25(store);
-  await persist(store);
   return {
     chunks_indexed: pieces.length,
     doc_id: docId,
     source,
     index_mode: "bm25",
-    // Returned so the browser can re-sync after serverless cold starts
     text: cleaned,
   };
 }
 
 export async function listDocuments(ownerId: string): Promise<DocumentInfo[]> {
-  const store = await ensureStore();
+  const store = ensureStore();
   const grouped = new Map<string, DocumentInfo>();
   for (const chunk of store.chunksById.values()) {
     if (chunk.owner_id !== ownerId) continue;
@@ -188,7 +126,7 @@ export async function listDocuments(ownerId: string): Promise<DocumentInfo[]> {
 }
 
 export async function deleteDocument(docId: string, ownerId: string): Promise<boolean> {
-  const store = await ensureStore();
+  const store = ensureStore();
   let removed = false;
   for (const [id, chunk] of [...store.chunksById.entries()]) {
     if (chunk.doc_id === docId && chunk.owner_id === ownerId) {
@@ -202,32 +140,69 @@ export async function deleteDocument(docId: string, ownerId: string): Promise<bo
       store.sourceDocIds.delete(key);
     }
   }
-  reindexBm25(store);
-  await persist(store);
   return true;
 }
 
+function tenantChunks(ownerId: string): Chunk[] {
+  const store = ensureStore();
+  return [...store.chunksById.values()].filter((c) => c.owner_id === ownerId);
+}
+
+function toHit(chunk: Chunk, score: number): SearchHit {
+  return {
+    chunk_id: chunk.id,
+    doc_id: chunk.doc_id,
+    source: chunk.source,
+    text: chunk.text,
+    score,
+    excerpt: chunk.text.length > 320 ? `${chunk.text.slice(0, 320).trim()}…` : chunk.text,
+  };
+}
+
+/** BM25 + substring fallback so we never drop hits when the tenant has docs. */
 export async function search(
   question: string,
   ownerId: string,
   topK = 5,
 ): Promise<SearchHit[]> {
-  const store = await ensureStore();
-  const tenantChunks = [...store.chunksById.values()].filter((c) => c.owner_id === ownerId);
-  // Rebuild BM25 over tenant only for isolation
-  const tenantIndex = new BM25Index();
-  tenantIndex.indexChunks(tenantChunks);
-  const hits = tenantIndex.search(question, topK);
-  return hits.map((hit) => ({
-    ...hit,
-    excerpt: hit.text.length > 320 ? `${hit.text.slice(0, 320).trim()}…` : hit.text,
-  }));
+  const chunks = tenantChunks(ownerId);
+  if (!chunks.length) return [];
+
+  const index = new BM25Index();
+  index.indexChunks(chunks);
+  let hits = index.search(question, topK);
+
+  // Fallback: keyword contains (helps short queries / weak BM25 scores)
+  if (!hits.length) {
+    const terms = (question.toLowerCase().match(/[a-z0-9]{3,}/g) || []).slice(0, 12);
+    if (terms.length) {
+      const ranked = chunks
+        .map((chunk) => {
+          const lower = chunk.text.toLowerCase();
+          let score = 0;
+          for (const t of terms) {
+            if (lower.includes(t)) score += 1 + (lower.split(t).length - 1) * 0.1;
+          }
+          return { chunk, score };
+        })
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
+      hits = ranked.map((x) => toHit(x.chunk, x.score));
+    }
+  }
+
+  // Last resort: return first passages so uploaded PDFs are never "no context"
+  if (!hits.length) {
+    hits = chunks.slice(0, topK).map((c, i) => toHit(c, 0.01 / (i + 1)));
+  }
+
+  return hits;
 }
 
 export async function stats(ownerId: string) {
   const docs = await listDocuments(ownerId);
-  const store = await ensureStore();
-  const chunks = [...store.chunksById.values()].filter((c) => c.owner_id === ownerId);
+  const chunks = tenantChunks(ownerId);
   return {
     chunk_count: chunks.length,
     source_count: docs.length,
@@ -236,18 +211,20 @@ export async function stats(ownerId: string) {
   };
 }
 
-/** Re-hydrate tenant docs from the browser (survives Vercel multi-instance cold starts). */
+/** Load client-sent documents into this request's store (same instance as search). */
 export async function syncDocuments(
   ownerId: string,
   documents: { source: string; text: string; doc_id?: string }[],
-): Promise<{ synced: number; documents: DocumentInfo[] }> {
+): Promise<{ synced: number; documents: DocumentInfo[]; chunk_count: number }> {
   let synced = 0;
   for (const doc of documents) {
     const text = (doc.text || "").trim();
     const source = (doc.source || "upload").trim();
     if (!text || !source) continue;
-    await ingestText(text, source, ownerId);
-    synced += 1;
+    const result = await ingestText(text, source, ownerId);
+    if (result.chunks_indexed > 0) synced += 1;
   }
-  return { synced, documents: await listDocuments(ownerId) };
+  const docs = await listDocuments(ownerId);
+  const chunk_count = tenantChunks(ownerId).length;
+  return { synced, documents: docs, chunk_count };
 }

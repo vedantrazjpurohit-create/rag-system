@@ -1,7 +1,8 @@
 import { bestProseSentence, isFormulaHeavy, normalizeEngineeringText } from "./normalize";
 import type { SearchHit } from "./types";
 
-const REFUSAL = "No supporting context retrieved.";
+const REFUSAL =
+  "No supporting context retrieved. Upload a PDF or .txt on Workspace (same browser), wait for “Added … chunks”, then ask again.";
 
 export function llmEnabled(): boolean {
   return Boolean(process.env.XAI_API_KEY?.trim());
