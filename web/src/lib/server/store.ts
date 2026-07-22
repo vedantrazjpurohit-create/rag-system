@@ -159,20 +159,29 @@ function toHit(chunk: Chunk, score: number): SearchHit {
   };
 }
 
-/** BM25 + substring fallback so we never drop hits when the tenant has docs. */
+export type SearchOutcome = {
+  hits: SearchHit[];
+  /** True when nothing scored; optional broad passages are not answer-grade matches. */
+  weak_match: boolean;
+  broad_passages: SearchHit[];
+};
+
+/** BM25 + keyword contains. No “dump first pages” fallback into answer hits. */
 export async function search(
   question: string,
   ownerId: string,
   topK = 5,
-): Promise<SearchHit[]> {
+): Promise<SearchOutcome> {
   const chunks = tenantChunks(ownerId);
-  if (!chunks.length) return [];
+  if (!chunks.length) {
+    return { hits: [], weak_match: true, broad_passages: [] };
+  }
 
   const index = new BM25Index();
   index.indexChunks(chunks);
   let hits = index.search(question, topK);
 
-  // Fallback: keyword contains (helps short queries / weak BM25 scores)
+  // Keyword contains (helps short queries / weak BM25 scores)
   if (!hits.length) {
     const terms = (question.toLowerCase().match(/[a-z0-9]{3,}/g) || []).slice(0, 12);
     if (terms.length) {
@@ -192,12 +201,13 @@ export async function search(
     }
   }
 
-  // Last resort: return first passages so uploaded PDFs are never "no context"
-  if (!hits.length) {
-    hits = chunks.slice(0, topK).map((c, i) => toHit(c, 0.01 / (i + 1)));
+  if (hits.length) {
+    return { hits, weak_match: false, broad_passages: [] };
   }
 
-  return hits;
+  // Optional broad passages for UI only — not used as confident answer context
+  const broad_passages = chunks.slice(0, Math.min(3, topK)).map((c, i) => toHit(c, 0.001 / (i + 1)));
+  return { hits: [], weak_match: true, broad_passages };
 }
 
 export async function stats(ownerId: string) {

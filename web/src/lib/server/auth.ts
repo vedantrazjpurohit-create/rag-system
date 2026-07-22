@@ -32,15 +32,27 @@ export function authEnabled(): boolean {
 }
 
 /**
- * Tenant isolation for the integrated Next.js API.
- * Browser clients call same-origin /api-proxy without an API key (keys stay server-side).
- * If a key IS sent, it must match RAG_API_KEY.
+ * Public demo access model (intentional):
+ * - Browser same-origin clients send X-Tenant-Id (UUID) for data isolation only.
+ * - That is NOT login identity — anyone can mint a UUID.
+ * - Set REQUIRE_API_KEY=true to require RAG_API_KEY on every mutating/read API call
+ *   (then inject the key only from a trusted server layer, not the browser).
  */
 export function requireApiAccess(request: NextRequest): string {
   const apiKey = process.env.RAG_API_KEY?.trim();
   const provided = providedApiKey(request);
-  if (apiKey && provided && !safeEqual(provided, apiKey)) {
-    throw new AuthError(401, "Invalid or missing API key");
+  const requireKey =
+    process.env.REQUIRE_API_KEY === "true" ||
+    process.env.REQUIRE_API_KEY === "1";
+
+  if (apiKey) {
+    if (requireKey) {
+      if (!provided || !safeEqual(provided, apiKey)) {
+        throw new AuthError(401, "Invalid or missing API key");
+      }
+    } else if (provided && !safeEqual(provided, apiKey)) {
+      throw new AuthError(401, "Invalid API key");
+    }
   }
 
   const tenant = (request.headers.get("x-tenant-id") || "").trim();
@@ -61,13 +73,15 @@ export function requireApiAccess(request: NextRequest): string {
   return tenant;
 }
 
-/** Admin actions: optional key from client; wrong key is rejected. Browser omits key. */
+/** Admin routes: when RAG_ADMIN_KEY is set, a matching key is required (missing → 403). */
 export function requireAdmin(request: NextRequest): void {
   const adminKey = process.env.RAG_ADMIN_KEY?.trim();
-  if (!adminKey) return;
+  if (!adminKey) {
+    throw new AuthError(403, "Admin operations are disabled (RAG_ADMIN_KEY not configured)");
+  }
   const provided =
     (request.headers.get("x-admin-key") || "").trim() || providedApiKey(request);
-  if (provided && !safeEqual(provided, adminKey)) {
+  if (!provided || !safeEqual(provided, adminKey)) {
     throw new AuthError(403, "Admin key required");
   }
 }

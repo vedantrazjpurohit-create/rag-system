@@ -4,6 +4,9 @@ import type { SearchHit } from "./types";
 const REFUSAL =
   "No supporting context retrieved. Upload a PDF or .txt on Workspace (same browser), wait for “Added … chunks”, then ask again.";
 
+const WEAK_MATCH =
+  "No strong match for that question in your uploaded files. Try different keywords, or open a broader passage from the optional suggestions if shown.";
+
 export function llmEnabled(): boolean {
   return Boolean(process.env.XAI_API_KEY?.trim());
 }
@@ -75,8 +78,14 @@ async function chatCompletion(system: string, user: string, maxTokens = 400): Pr
 export async function generateAnswer(
   question: string,
   hits: SearchHit[],
+  options?: { weakMatch?: boolean; hasCorpus?: boolean },
 ): Promise<{ answer: string; mode: string }> {
-  if (!hits.length) return { answer: REFUSAL, mode: "template" };
+  if (!hits.length) {
+    if (options?.weakMatch && options?.hasCorpus) {
+      return { answer: WEAK_MATCH, mode: "template" };
+    }
+    return { answer: REFUSAL, mode: "template" };
+  }
 
   if (llmEnabled()) {
     const snippets = hits.slice(0, 4).map((h, i) => {
