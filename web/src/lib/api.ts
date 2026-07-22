@@ -10,6 +10,7 @@ import type {
   StudyMode,
   StudyResponse,
 } from "./types";
+import { listLocalDocuments, removeLocalDocument, saveLocalDocument } from "./localCorpus";
 import { TenantUnavailableError, getTenantId } from "./tenant";
 
 /**
@@ -135,14 +136,56 @@ export async function ingestFile(file: File): Promise<IngestResponse> {
   if (!result?.doc_id && !result?.chunks_indexed) {
     throw new Error("Upload response was incomplete — the API may still be waking up. Try again.");
   }
+  // Keep a browser copy so Learn/chat still work after Vercel instance hops
+  if (result.text && result.doc_id) {
+    try {
+      await saveLocalDocument({
+        doc_id: result.doc_id,
+        source: result.source || file.name,
+        text: result.text,
+        chunks_indexed: result.chunks_indexed ?? 0,
+      });
+    } catch {
+      /* storage full — server index still holds this request's data */
+    }
+  }
   return result;
 }
 
-export function queryDocuments(
+/** Push browser-cached PDFs back onto the server index (fixes empty Learn after cold start). */
+export async function syncLocalCorpus(): Promise<{ synced: number; documents: DocumentInfo[] }> {
+  const local = await listLocalDocuments();
+  if (!local.length) {
+    const remote = await listDocuments();
+    return { synced: 0, documents: remote.documents ?? [] };
+  }
+  const result = await request<{ synced: number; documents: DocumentInfo[] }>("/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      documents: local.map((d) => ({
+        source: d.source,
+        text: d.text,
+        doc_id: d.doc_id,
+      })),
+    }),
+  });
+  return {
+    synced: result.synced ?? 0,
+    documents: result.documents ?? [],
+  };
+}
+
+export async function queryDocuments(
   question: string,
   strategy: Strategy,
   topK = 5,
 ): Promise<QueryResponse> {
+  try {
+    await syncLocalCorpus();
+  } catch {
+    /* best-effort rehydrate */
+  }
   return request("/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -150,8 +193,13 @@ export function queryDocuments(
   });
 }
 
-export function deleteDocument(docId: string): Promise<{ deleted: string; stats: Stats }> {
-  return request(`/documents/${encodeURIComponent(docId)}`, { method: "DELETE" });
+export async function deleteDocument(docId: string): Promise<{ deleted: string; stats: Stats }> {
+  const result = await request<{ deleted: string; stats: Stats }>(
+    `/documents/${encodeURIComponent(docId)}`,
+    { method: "DELETE" },
+  );
+  await removeLocalDocument(docId);
+  return result;
 }
 
 export function getAdversarialSummary(): Promise<AdversarialComparison> {
@@ -199,6 +247,11 @@ export async function queryStream(
   },
   topK = 5,
 ): Promise<void> {
+  try {
+    await syncLocalCorpus();
+  } catch {
+    /* best-effort rehydrate */
+  }
   const response = await fetch(`${API_BASE}/query/stream`, {
     method: "POST",
     headers: tenantHeaders({ "Content-Type": "application/json" }),

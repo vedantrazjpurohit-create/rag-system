@@ -16,6 +16,7 @@ import {
   listDocuments,
   search,
   stats,
+  syncDocuments,
 } from "@/lib/server/store";
 import { fetchWeb, templateWebParagraph } from "@/lib/server/webSearch";
 
@@ -92,6 +93,25 @@ async function handle(
       const ok = await deleteDocument(docId, tenant);
       if (!ok) return err(404, `Document not found: ${docId}`);
       return json({ deleted: docId, stats: await stats(tenant) });
+    }
+
+    if (method === "POST" && path === "/sync") {
+      const tenant = requireApiAccess(request);
+      const body = (await request.json()) as {
+        documents?: { source: string; text: string; doc_id?: string }[];
+      };
+      const docs = Array.isArray(body.documents) ? body.documents : [];
+      // Cap payload size for safety
+      const limited = docs
+        .slice(0, 20)
+        .map((d) => ({
+          source: String(d.source || "upload").slice(0, 200),
+          text: String(d.text || "").slice(0, 500_000),
+          doc_id: d.doc_id,
+        }))
+        .filter((d) => d.text.trim());
+      const result = await syncDocuments(tenant, limited);
+      return json(result);
     }
 
     if (method === "POST" && path === "/ingest") {

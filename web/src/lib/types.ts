@@ -122,6 +122,8 @@ export interface IngestResponse {
   source: string;
   doc_id: string;
   index_mode?: string;
+  /** Extracted text returned so the browser can re-sync after serverless cold starts */
+  text?: string;
 }
 
 export interface StrategySummary {

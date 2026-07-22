@@ -9,7 +9,7 @@ import { IndexReview } from "@/components/index/IndexReview";
 import { IndexWorkspace } from "@/components/index/IndexWorkspace";
 import { SampleHeader, type SampleTab } from "@/components/sample/SampleHeader";
 import { SampleHero } from "@/components/sample/SampleHero";
-import { deleteDocument, getHealth, listDocuments } from "@/lib/api";
+import { deleteDocument, getHealth, listDocuments, syncLocalCorpus } from "@/lib/api";
 import type { DocumentInfo } from "@/lib/types";
 
 export default function Home() {
@@ -27,11 +27,21 @@ export default function Home() {
     setDocsLoading(true);
     setDocsError(null);
     try {
-      const response = await listDocuments();
-      setDocuments(response.documents ?? []);
+      // Re-push browser-cached PDFs so Learn/chat hit a warm index on this instance
+      const synced = await syncLocalCorpus();
+      if (synced.documents?.length) {
+        setDocuments(synced.documents);
+      } else {
+        const response = await listDocuments();
+        setDocuments(response.documents ?? []);
+      }
     } catch (err) {
-      // Do not silently wipe the list on a transient failure after upload
-      setDocsError(err instanceof Error ? err.message : "Could not load your library");
+      try {
+        const response = await listDocuments();
+        setDocuments(response.documents ?? []);
+      } catch {
+        setDocsError(err instanceof Error ? err.message : "Could not load your library");
+      }
     } finally {
       setDocsLoading(false);
     }
@@ -69,8 +79,7 @@ export default function Home() {
       >
         {wakingServer && apiOnline === null && (
           <div className="sample-card-inset mb-6 px-4 py-3 text-sm text-[var(--sample-muted)]">
-            Waking server… Render free tier can take 30–60s after idle. The page will load once the
-            API responds.
+            Starting API… first load can take a few seconds.
           </div>
         )}
         {apiOnline === false && (

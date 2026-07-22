@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getAppConfig, runStudy } from "@/lib/api";
+import { getAppConfig, runStudy, syncLocalCorpus } from "@/lib/api";
 import type {
   DocumentInfo,
   Flashcard,
@@ -130,6 +130,13 @@ export function IndexLearn({ documents }: IndexLearnProps) {
         setDefinition(null);
         setCards([]);
       } else {
+        // Re-sync browser PDF cache → this server instance (Vercel cold starts wipe memory)
+        try {
+          await syncLocalCorpus();
+        } catch {
+          /* continue; server may still have chunks */
+        }
+
         // Library + web background in parallel so notes aren't blocked by web search
         const [library, web] = await Promise.all([
           runStudy({ mode: chosen, topic: query, count: 8, top_k: 8 }),
@@ -165,8 +172,12 @@ export function IndexLearn({ documents }: IndexLearnProps) {
         setWebProvider(web.provider ?? null);
         setWebError(web.search_error ?? null);
 
-        if (chosen === "notes" && !library.notes) {
-          setError("Notes came back empty — upload PDFs that cover this topic, then try again.");
+        if (chosen === "notes" && (library.matched_passages === 0 || !library.notes)) {
+          setError(
+            documents.length === 0
+              ? "No PDFs in your library yet — upload on the Workspace tab first, then come back to Learn."
+              : "No passages matched this topic in your PDFs. Try a shorter keyword (e.g. “force”), or re-upload the file.",
+          );
         }
       }
 
@@ -195,9 +206,9 @@ export function IndexLearn({ documents }: IndexLearnProps) {
       <section className="sample-card p-6">
         <h2 className="sample-heading text-xl text-[var(--sample-text)]">Learn from your library</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--sample-muted)]">
-          Notes, definitions, and flashcards come from your uploaded PDFs. Web pulls a live background
-          paragraph (Wikipedia / DuckDuckGo) so you can compare with your files — titles shown, no
-          open links.
+          Notes, definitions, and flashcards come from PDFs you uploaded on the Workspace tab (same
+          browser). We re-sync your library before each search so Learn sees the same files. Web
+          background is separate (Wikipedia / DuckDuckGo).
         </p>
         <p className="mt-2 text-xs text-[var(--sample-dim)]">
           {llmEnabled ? "Full generation · Grok enabled" : "Template mode · add XAI_API_KEY for richer output"}

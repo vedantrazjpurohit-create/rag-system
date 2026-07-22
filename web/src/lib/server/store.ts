@@ -126,12 +126,12 @@ export async function ingestText(
   text: string,
   source: string,
   ownerId: string,
-): Promise<{ chunks_indexed: number; doc_id: string; source: string; index_mode: string }> {
+): Promise<{ chunks_indexed: number; doc_id: string; source: string; index_mode: string; text: string }> {
   const store = await ensureStore();
   const cleaned = normalizeEngineeringText(text);
   const pieces = chunkText(cleaned).map((c) => normalizeEngineeringText(c));
   if (!pieces.length) {
-    return { chunks_indexed: 0, doc_id: "", source, index_mode: "bm25" };
+    return { chunks_indexed: 0, doc_id: "", source, index_mode: "bm25", text: cleaned };
   }
 
   // Replace existing source for this tenant
@@ -162,6 +162,8 @@ export async function ingestText(
     doc_id: docId,
     source,
     index_mode: "bm25",
+    // Returned so the browser can re-sync after serverless cold starts
+    text: cleaned,
   };
 }
 
@@ -232,4 +234,20 @@ export async function stats(ownerId: string) {
     sources: docs.map((d) => d.source).sort(),
     doc_ids: docs.map((d) => d.doc_id).sort(),
   };
+}
+
+/** Re-hydrate tenant docs from the browser (survives Vercel multi-instance cold starts). */
+export async function syncDocuments(
+  ownerId: string,
+  documents: { source: string; text: string; doc_id?: string }[],
+): Promise<{ synced: number; documents: DocumentInfo[] }> {
+  let synced = 0;
+  for (const doc of documents) {
+    const text = (doc.text || "").trim();
+    const source = (doc.source || "upload").trim();
+    if (!text || !source) continue;
+    await ingestText(text, source, ownerId);
+    synced += 1;
+  }
+  return { synced, documents: await listDocuments(ownerId) };
 }
