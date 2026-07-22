@@ -41,6 +41,9 @@ export function UploadPanel({ onUploaded }: UploadPanelProps) {
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
       <h2 className="mb-3 text-sm font-semibold text-slate-200">Upload documents</h2>
+      <p className="mb-3 text-xs leading-relaxed text-slate-500">
+        Public demo. Don’t upload secrets or confidential docs.
+      </p>
       <div
         role="button"
         tabIndex={0}

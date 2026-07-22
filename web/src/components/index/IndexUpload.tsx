@@ -70,6 +70,9 @@ export function IndexUpload({ fileCount, onUploaded }: IndexUploadProps) {
         <h2 className="text-sm font-medium text-[var(--sample-text)]">Add your PDFs</h2>
         <span className="text-xs text-[var(--sample-dim)]">{fileCount} added</span>
       </div>
+      <p className="mb-3 text-xs leading-relaxed text-[var(--sample-dim)]">
+        Public demo. Don’t upload secrets or confidential docs.
+      </p>
 
       <div
         role="button"

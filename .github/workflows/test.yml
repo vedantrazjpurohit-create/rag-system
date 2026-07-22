@@ -36,7 +36,5 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Install and build
-        run: npm ci && npm run build
-        env:
-          NEXT_PUBLIC_API_URL: https://rag-system-api.onrender.com
+      - name: Install, lint, and build
+        run: npm ci && npm run lint && npm run build

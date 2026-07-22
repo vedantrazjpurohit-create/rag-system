@@ -80,7 +80,7 @@ The production app is a **single Next.js project** on Vercel. Upload, search, no
 |-----|-----------|---------|
 | `XAI_API_KEY` | Optional | Grok answers from [console.x.ai](https://console.x.ai) |
 | `XAI_MODEL` | Optional | Default `grok-4.5` |
-| `RAG_ADMIN_KEY` | Optional | **Set this** if you want `/eval`, `/demo/seed`, or other admin routes usable. Without it, admin routes stay **safely disabled** (403). |
+| `RAG_ADMIN_KEY` | Optional | Set **only if** you need admin/eval routes live (`/eval`, `/demo/seed`). Leave unset on a public demo — those routes stay **safely disabled** (403). |
 | `RAG_API_KEY` | Optional | Shared secret for API callers |
 | `REQUIRE_API_KEY` | Optional | Set `true` if this is more than a public demo — every API call must send a valid `RAG_API_KEY` (use a trusted server layer; do not put the key in browser JS). |
 | `FRONTEND_URL` | Optional | Canonical site origin for CORS (e.g. `https://your-app.vercel.app`) |
@@ -149,8 +149,8 @@ This section describes how the **live Vercel** app treats identity, data, and se
 
 | Variable | Effect |
 |----------|--------|
-| `RAG_ADMIN_KEY` unset | Admin routes (`/eval`, `/demo/seed`, `/eval/history`) are **disabled** (403). Safe default. |
-| `RAG_ADMIN_KEY` set | Admin routes require a matching `X-Admin-Key` (or Bearer) — missing key is rejected. |
+| `RAG_ADMIN_KEY` unset | Admin routes (`/eval`, `/demo/seed`, `/eval/history`) are **disabled** (403). Prefer this for a public demo. |
+| `RAG_ADMIN_KEY` set | Only if you actually need admin/eval live. Then every admin call must send a matching `X-Admin-Key` (or Bearer); missing key is rejected. |
 | `REQUIRE_API_KEY=true` | All API access requires a valid `RAG_API_KEY` (breaks pure browser-only demos unless you add a BFF). |
 
 ### CORS
