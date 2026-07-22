@@ -47,7 +47,9 @@ export function IndexLearn({ documents }: IndexLearnProps) {
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
+  const [history, setHistory] = useState<SearchHistoryEntry[]>(() =>
+    typeof window !== "undefined" ? loadHistory() : [],
+  );
   const [notes, setNotes] = useState<string | null>(null);
   const [definition, setDefinition] = useState<string | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -57,6 +59,9 @@ export function IndexLearn({ documents }: IndexLearnProps) {
   const [webError, setWebError] = useState<string | null>(null);
   const [matchedPassages, setMatchedPassages] = useState<number | null>(null);
   const [contexts, setContexts] = useState<RetrievedContext[]>([]);
+  const [broadPassages, setBroadPassages] = useState<RetrievedContext[]>([]);
+  const [weakMatch, setWeakMatch] = useState(false);
+  const [showBroad, setShowBroad] = useState(false);
   const [cardIndex, setCardIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(true);
@@ -66,12 +71,15 @@ export function IndexLearn({ documents }: IndexLearnProps) {
   const visibleContexts = useMemo(() => {
     if (!contexts.length) return [];
     const filtered = contexts.filter((ctx) => !ctx.doc_id || docIds.has(ctx.doc_id));
-    // If library list is stale / ids differ, still show what retrieval returned
     return filtered.length > 0 ? filtered : contexts;
   }, [contexts, docIds]);
+  const visibleBroad = useMemo(() => {
+    if (!broadPassages.length) return [];
+    const filtered = broadPassages.filter((ctx) => !ctx.doc_id || docIds.has(ctx.doc_id));
+    return filtered.length > 0 ? filtered : broadPassages;
+  }, [broadPassages, docIds]);
 
   useEffect(() => {
-    setHistory(loadHistory());
     getAppConfig()
       .then((cfg) => {
         setWebSearchEnabled(cfg.web_search_enabled !== false);
@@ -122,6 +130,9 @@ export function IndexLearn({ documents }: IndexLearnProps) {
         setWebProvider(web.provider ?? null);
         setWebError(web.search_error ?? null);
         setContexts([]);
+        setBroadPassages([]);
+        setWeakMatch(false);
+        setShowBroad(false);
         setMatchedPassages(null);
         setNotes(null);
         setDefinition(null);
@@ -151,6 +162,9 @@ export function IndexLearn({ documents }: IndexLearnProps) {
         setDefinition(library.definition ?? null);
         setCards(library.cards ?? []);
         setContexts(library.contexts ?? []);
+        setBroadPassages(library.broad_passages ?? []);
+        setWeakMatch(Boolean(library.weak_match));
+        setShowBroad(false);
         setMatchedPassages(
           typeof library.matched_passages === "number"
             ? library.matched_passages
@@ -386,14 +400,35 @@ export function IndexLearn({ documents }: IndexLearnProps) {
             <p className="sample-card-inset px-3 py-4 text-center text-xs text-[var(--sample-muted)]">
               {mode === "web"
                 ? "Switch to Notes / Definition / Flashcards to pull file passages"
-                : matchedPassages === 0
-                  ? "No passages matched — try a shorter keyword or upload a better PDF"
-                  : "File sources appear here after you generate notes, definitions, or flashcards"}
+                : weakMatch
+                  ? "No strong match for that topic"
+                  : matchedPassages === 0
+                    ? "No passages matched — try a shorter keyword or upload a better PDF"
+                    : "File sources appear here after you generate notes, definitions, or flashcards"}
             </p>
           ) : (
             visibleContexts.map((ctx, idx) => (
               <IndexContextCard key={ctx.chunk_id ?? `${ctx.doc_id}-${idx}`} context={ctx} rank={idx + 1} />
             ))
+          )}
+          {weakMatch && visibleBroad.length > 0 && mode !== "web" && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowBroad((v) => !v)}
+                className="sample-btn sample-btn-ghost w-full text-xs"
+              >
+                {showBroad ? "Hide broad passages" : "Show broad passages (may be unrelated)"}
+              </button>
+              {showBroad &&
+                visibleBroad.map((ctx, idx) => (
+                  <IndexContextCard
+                    key={`broad-${ctx.chunk_id ?? idx}`}
+                    context={ctx}
+                    rank={idx + 1}
+                  />
+                ))}
+            </div>
           )}
         </aside>
 

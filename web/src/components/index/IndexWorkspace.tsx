@@ -46,28 +46,39 @@ export function IndexWorkspace({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>(DEFAULT_MESSAGES);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_MESSAGES;
+    try {
+      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as ChatMessage[];
+        if (parsed.length) return parsed;
+      }
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_MESSAGES;
+  });
   const [contexts, setContexts] = useState<RetrievedContext[]>([]);
+  const [broadPassages, setBroadPassages] = useState<RetrievedContext[]>([]);
+  const [weakMatch, setWeakMatch] = useState(false);
+  const [showBroad, setShowBroad] = useState(false);
   const [activeSource, setActiveSource] = useState<number | null>(null);
 
   const docIds = useMemo(() => new Set(documents.map((d) => d.doc_id)), [documents]);
 
   const visibleContexts = useMemo(
-    () => contexts.filter((ctx) => docIds.has(ctx.doc_id)),
+    () => contexts.filter((ctx) => !ctx.doc_id || docIds.has(ctx.doc_id) || docIds.size === 0),
     [contexts, docIds],
   );
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as ChatMessage[];
-        if (parsed.length) setMessages(parsed);
-      }
-    } catch {
-      /* ignore corrupt storage */
-    }
-  }, []);
+  const visibleBroad = useMemo(
+    () => broadPassages.filter((ctx) => !ctx.doc_id || docIds.has(ctx.doc_id) || docIds.size === 0),
+    [broadPassages, docIds],
+  );
+
+  const effectiveActiveSource =
+    activeSource !== null && visibleContexts[activeSource - 1] ? activeSource : null;
 
   useEffect(() => {
     const persistable = messages.filter((m) => !m.streaming);
@@ -80,12 +91,6 @@ export function IndexWorkspace({
     if (focusNonce > 0) inputRef.current?.focus();
   }, [focusNonce]);
 
-  useEffect(() => {
-    if (activeSource !== null && !visibleContexts[activeSource - 1]) {
-      setActiveSource(null);
-    }
-  }, [activeSource, visibleContexts]);
-
   async function runQuery(question: string) {
     setError(null);
     setLoading(true);
@@ -94,11 +99,18 @@ export function IndexWorkspace({
 
     let streamed = "";
     let retrieved: RetrievedContext[] = [];
+    let broad: RetrievedContext[] = [];
+    let wasWeak = false;
     try {
       await queryStream(question, "bm25", {
         onMeta: (meta) => {
           retrieved = meta.contexts;
+          broad = meta.broad_passages ?? [];
+          wasWeak = Boolean(meta.weak_match);
           setContexts(meta.contexts);
+          setBroadPassages(broad);
+          setWeakMatch(wasWeak);
+          setShowBroad(false);
         },
         onToken: (token) => {
           streamed += token;
@@ -114,14 +126,19 @@ export function IndexWorkspace({
         },
         onDone: (data) => {
           const answer = normalizeForDisplay(data.answer);
+          wasWeak = Boolean(data.weak_match ?? wasWeak);
           const full: QueryResponse = {
             answer,
             contexts: retrieved,
+            broad_passages: broad,
+            weak_match: wasWeak,
             strategy: data.strategy,
             answer_mode: data.answer_mode,
             timing_ms: data.timing_ms,
           };
           setContexts(retrieved);
+          setBroadPassages(broad);
+          setWeakMatch(wasWeak);
           setMessages((prev) => {
             const copy = [...prev];
             const last = copy[copy.length - 1];
@@ -212,6 +229,9 @@ export function IndexWorkspace({
                 localStorage.removeItem(CHAT_STORAGE_KEY);
                 setMessages(DEFAULT_MESSAGES);
                 setContexts([]);
+                setBroadPassages([]);
+                setWeakMatch(false);
+                setShowBroad(false);
                 setActiveSource(null);
               }}
               className="sample-btn sample-btn-ghost text-xs"
@@ -267,7 +287,9 @@ export function IndexWorkspace({
         <p className="text-sm font-medium text-[var(--sample-text)]">Where it came from</p>
         {visibleContexts.length === 0 ? (
           <p className="sample-card-inset px-3 py-4 text-center text-xs text-[var(--sample-muted)]">
-            Sources show up after you ask something
+            {weakMatch
+              ? "No strong match for that question"
+              : "Sources show up after you ask something"}
           </p>
         ) : (
           visibleContexts.map((ctx, idx) => (
@@ -275,7 +297,7 @@ export function IndexWorkspace({
               key={ctx.chunk_id}
               context={ctx}
               rank={idx + 1}
-              active={activeSource === idx + 1}
+              active={effectiveActiveSource === idx + 1}
               onSelect={() => {
                 setActiveSource(idx + 1);
                 document.getElementById(`source-${idx + 1}`)?.scrollIntoView({
@@ -285,6 +307,25 @@ export function IndexWorkspace({
               }}
             />
           ))
+        )}
+        {weakMatch && visibleBroad.length > 0 && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowBroad((v) => !v)}
+              className="sample-btn sample-btn-ghost w-full text-xs"
+            >
+              {showBroad ? "Hide broad passages" : "Show broad passages (may be unrelated)"}
+            </button>
+            {showBroad &&
+              visibleBroad.map((ctx, idx) => (
+                <IndexContextCard
+                  key={`broad-${ctx.chunk_id}-${idx}`}
+                  context={ctx}
+                  rank={idx + 1}
+                />
+              ))}
+          </div>
         )}
       </aside>
     </div>

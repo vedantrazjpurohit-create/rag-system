@@ -26,6 +26,9 @@ export interface RetrievedContext {
 export interface QueryResponse {
   answer: string;
   contexts: RetrievedContext[];
+  /** Weak / non-matching excerpts — only show when user opts in */
+  broad_passages?: RetrievedContext[];
+  weak_match?: boolean;
   strategy: Strategy;
   answer_mode: "llm" | "template" | string;
   timing_ms: {
@@ -76,6 +79,7 @@ export interface AppConfig {
   tenant_header_required?: boolean;
   tenant_uuid_required?: boolean;
   web_search_enabled?: boolean;
+  public_demo_auth?: boolean;
 }
 
 export type StudyMode = "notes" | "define" | "flashcards" | "web";
@@ -107,6 +111,8 @@ export interface StudyResponse {
   search_error?: string | null;
   matched_passages?: number;
   contexts?: RetrievedContext[];
+  broad_passages?: RetrievedContext[];
+  weak_match?: boolean;
   strategy?: Strategy;
 }
 

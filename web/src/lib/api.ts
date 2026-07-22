@@ -261,9 +261,19 @@ export async function queryStream(
   question: string,
   strategy: Strategy,
   handlers: {
-    onMeta: (data: { contexts: QueryResponse["contexts"]; strategy: Strategy; retrieve_ms: number }) => void;
+    onMeta: (data: {
+      contexts: QueryResponse["contexts"];
+      broad_passages?: QueryResponse["contexts"];
+      weak_match?: boolean;
+      strategy: Strategy;
+      retrieve_ms: number;
+    }) => void;
     onToken: (token: string) => void;
-    onDone: (data: Pick<QueryResponse, "answer" | "answer_mode" | "timing_ms" | "strategy">) => void;
+    onDone: (
+      data: Pick<QueryResponse, "answer" | "answer_mode" | "timing_ms" | "strategy"> & {
+        weak_match?: boolean;
+      },
+    ) => void;
     onError: (message: string) => void;
   },
   topK = 5,
@@ -297,6 +307,8 @@ export async function queryStream(
     if (payload.type === "meta") {
       handlers.onMeta({
         contexts: payload.contexts as QueryResponse["contexts"],
+        broad_passages: payload.broad_passages as QueryResponse["contexts"] | undefined,
+        weak_match: Boolean(payload.weak_match),
         strategy: payload.strategy as Strategy,
         retrieve_ms: payload.retrieve_ms as number,
       });
@@ -307,6 +319,7 @@ export async function queryStream(
         answer: String(payload.answer ?? ""),
         answer_mode: String(payload.answer_mode ?? "template"),
         strategy,
+        weak_match: Boolean(payload.weak_match),
         timing_ms: payload.timing_ms as QueryResponse["timing_ms"],
       });
     }

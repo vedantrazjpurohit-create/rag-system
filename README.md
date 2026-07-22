@@ -74,14 +74,19 @@ The production app is a **single Next.js project** on Vercel. Upload, search, no
 2. Import `vedantrazjpurohit-create/rag-system`
 3. **Root Directory** = **`web`**
 4. Framework = **Next.js**
-5. Environment variables (optional but recommended):
+5. Environment variables:
 
-| Key | Value |
-|-----|--------|
-| `XAI_API_KEY` | from [console.x.ai](https://console.x.ai) for full Grok answers |
-| `XAI_MODEL` | `grok-4.5` |
-| `RAG_API_KEY` | optional lock for external callers |
-| `RAG_ADMIN_KEY` | optional |
+| Key | Required? | Purpose |
+|-----|-----------|---------|
+| `XAI_API_KEY` | Optional | Grok answers from [console.x.ai](https://console.x.ai) |
+| `XAI_MODEL` | Optional | Default `grok-4.5` |
+| `RAG_ADMIN_KEY` | Optional | **Set this** if you want `/eval`, `/demo/seed`, or other admin routes usable. Without it, admin routes stay **safely disabled** (403). |
+| `RAG_API_KEY` | Optional | Shared secret for API callers |
+| `REQUIRE_API_KEY` | Optional | Set `true` if this is more than a public demo — every API call must send a valid `RAG_API_KEY` (use a trusted server layer; do not put the key in browser JS). |
+| `FRONTEND_URL` | Optional | Canonical site origin for CORS (e.g. `https://your-app.vercel.app`) |
+| `CORS_ORIGINS` | Optional | Extra allowed origins (comma-separated) |
+| `ALLOW_VERCEL_PREVIEWS` | Optional | `true` to allow `*.vercel.app` preview origins |
+| `ALLOW_FULL_CONTEXT` | Optional | `true` to allow full chunk `text` in API responses when requested |
 
 Do **not** set `NEXT_PUBLIC_API_URL` or `API_PROXY_TARGET` — the app uses same-origin `/api-proxy`.
 
@@ -94,16 +99,70 @@ Do **not** set `NEXT_PUBLIC_API_URL` or `API_PROXY_TARGET` — the app uses same
 | Site | `https://<vercel>/` |
 | Health | `https://<vercel>/api-proxy/health` |
 
+### Local checks
+
+```powershell
+cd web
+npm ci
+npm run lint
+npm run build
+```
+
 ### Notes
 
 - Retrieval is **BM25** (keyword) in-process — fast, no Chroma/embedder bundle.
-- Index is stored in memory (+ `/tmp` on the instance). **Cold starts can empty uploads** on free serverless; re-upload if the library looks empty after idle.
+- Browser caches extracted PDF text and re-sends it with each query (survives serverless instance hops).
 - Max upload ~4.5MB on Vercel Hobby.
 - Local Python FastAPI (`api/`) still works for full eval/hybrid experiments via `.\launch.ps1`.
 
 #### If you see `No FastAPI entrypoint found…`
 
 Set **Root Directory** = `web` and **Framework** = **Next.js**, then redeploy.
+
+## Security model
+
+This section describes how the **live Vercel** app treats identity, data, and secrets. Treat it as a **public demo** unless you tighten the knobs below.
+
+### Public demo auth (default)
+
+- The browser does **not** log in with a password or OAuth.
+- Each browser session gets a random **UUID** stored in `localStorage` and sent as `X-Tenant-Id`.
+- That UUID **isolates data between sessions** (your uploads are not mixed with another visitor’s under a different id).
+- UUIDs are **not identity**. Anyone can invent a UUID. Do not rely on this for private or regulated data.
+- If the product becomes more than a public demo: set `REQUIRE_API_KEY=true` and only call the API from a trusted backend that injects `RAG_API_KEY`, **or** add real login (session/JWT) and map users to tenants server-side.
+
+### Tenant isolation
+
+- Ingest, list, delete, query, and study all scope work by `X-Tenant-Id`.
+- Reserved ids (`default`, `public`, etc.) are rejected.
+- On Vercel, tenant ids must be UUIDs.
+- Deleting a document only removes that tenant’s copy.
+
+### Secrets and uploads
+
+- **Never** put API keys in `NEXT_PUBLIC_*` variables or client-side code.
+- `XAI_API_KEY`, `RAG_API_KEY`, and `RAG_ADMIN_KEY` are **server-only** env vars on Vercel.
+- Uploaded PDFs/text are processed for search; do not upload passwords, keys, or confidential documents to a public demo.
+- Full chunk text is **not** returned in query contexts by default (excerpts only). Full text requires `include_full_context: true` plus admin/`ALLOW_FULL_CONTEXT`.
+
+### Admin env vars
+
+| Variable | Effect |
+|----------|--------|
+| `RAG_ADMIN_KEY` unset | Admin routes (`/eval`, `/demo/seed`, `/eval/history`) are **disabled** (403). Safe default. |
+| `RAG_ADMIN_KEY` set | Admin routes require a matching `X-Admin-Key` (or Bearer) — missing key is rejected. |
+| `REQUIRE_API_KEY=true` | All API access requires a valid `RAG_API_KEY` (breaks pure browser-only demos unless you add a BFF). |
+
+### CORS
+
+- Preflight does **not** use `Access-Control-Allow-Origin: *`.
+- Allowed origins: `FRONTEND_URL`, `VERCEL_URL` / production host, `http://localhost:3000`, `http://127.0.0.1:3000`, plus `CORS_ORIGINS`.
+- Optional: `ALLOW_VERCEL_PREVIEWS=true` for `https://*.vercel.app` previews.
+
+### Weak retrieval / broad passages
+
+- If nothing strongly matches a query, the answer is a soft refusal, not a confident dump of random pages.
+- Optional **broad passages** (unrelated excerpts) are only shown in the UI when the user clicks **Show broad passages**.
 
 | Endpoint | What it does |
 |----------|--------------|
