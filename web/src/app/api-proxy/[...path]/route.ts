@@ -24,10 +24,11 @@ import { fetchWeb, templateWebParagraph } from "@/lib/server/webSearch";
 
 export const runtime = "nodejs";
 // OCR on scanned PDFs is slower; keep within Vercel Hobby max (60s)
-export const maxDuration = 60;
+// Long lecture PDFs (up to 500 pages) + OCR. Pro plan needed for full 300s on Vercel.
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_BYTES || 4.5 * 1024 * 1024);
+const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_BYTES || 50 * 1024 * 1024);
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
