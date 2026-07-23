@@ -61,11 +61,15 @@ export default function Home() {
   }, [refreshDocuments]);
 
   async function handleDelete(docId: string) {
+    // Optimistic UI so Remove feels instant even if the server instance never had the file
+    setDocuments((prev) => prev.filter((d) => d.doc_id !== docId));
+    setDocsError(null);
     try {
       await deleteDocument(docId);
       await refreshDocuments();
-    } catch {
-      /* stale state until manual refresh */
+    } catch (err) {
+      setDocsError(err instanceof Error ? err.message : "Could not remove file");
+      await refreshDocuments();
     }
   }
 

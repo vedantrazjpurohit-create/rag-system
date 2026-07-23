@@ -195,11 +195,10 @@ async function handle(
     }
 
     if (method === "DELETE" && path.startsWith("/documents/")) {
-      // Tenant-scoped delete of own docs (no admin key). Admin key is for privileged ops only.
+      // Tenant-scoped delete of own docs. Idempotent: missing doc is still success.
       const tenant = requireApiAccess(request);
       const docId = decodeURIComponent(path.slice("/documents/".length));
-      const ok = await deleteDocument(docId, tenant);
-      if (!ok) return err(404, `Document not found: ${docId}`);
+      await deleteDocument(docId, tenant);
       return json({ deleted: docId, stats: await stats(tenant) });
     }
 

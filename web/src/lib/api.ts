@@ -214,13 +214,23 @@ export async function queryDocuments(
   });
 }
 
-export async function deleteDocument(docId: string): Promise<{ deleted: string; stats: Stats }> {
-  const result = await request<{ deleted: string; stats: Stats }>(
-    `/documents/${encodeURIComponent(docId)}`,
-    { method: "DELETE" },
-  );
+export async function deleteDocument(docId: string): Promise<{ deleted: string; stats?: Stats }> {
+  // Always drop browser cache first — otherwise syncLocalCorpus re-uploads the file.
   await removeLocalDocument(docId);
-  return result;
+
+  try {
+    return await request<{ deleted: string; stats: Stats }>(
+      `/documents/${encodeURIComponent(docId)}`,
+      { method: "DELETE" },
+    );
+  } catch (err) {
+    // Server instance may never have had this doc (Vercel hop) — local remove is enough.
+    const message = err instanceof Error ? err.message : String(err);
+    if (/404|not found/i.test(message)) {
+      return { deleted: docId };
+    }
+    throw err;
+  }
 }
 
 export function getAdversarialSummary(): Promise<AdversarialComparison> {

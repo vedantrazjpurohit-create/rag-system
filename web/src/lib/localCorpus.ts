@@ -67,7 +67,12 @@ export async function removeLocalDocument(docId: string): Promise<void> {
   try {
     const db = await openDb();
     const tx = db.transaction(STORE, "readwrite");
-    await idbRequest(tx.objectStore(STORE).delete(docId));
+    tx.objectStore(STORE).delete(docId);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB delete failed"));
+      tx.onabort = () => reject(tx.error || new Error("IndexedDB delete aborted"));
+    });
     db.close();
   } catch {
     /* ignore */
