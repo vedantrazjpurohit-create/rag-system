@@ -23,6 +23,7 @@ import type { SearchHit } from "@/lib/server/types";
 import { fetchWeb, templateWebParagraph } from "@/lib/server/webSearch";
 
 export const runtime = "nodejs";
+// OCR on scanned PDFs is slower; keep within Vercel Hobby max (60s)
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 

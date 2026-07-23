@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: monorepoRoot,
   },
+  // Native / wasm packages must not be bundled into the route chunk
+  serverExternalPackages: ["@napi-rs/canvas", "tesseract.js", "sharp"],
   experimental: {
     proxyClientMaxBodySize: "10mb",
   },
