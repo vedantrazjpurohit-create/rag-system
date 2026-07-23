@@ -58,6 +58,8 @@ function publicContexts(hits: SearchHit[], includeFull: boolean) {
     doc_id: h.doc_id,
     source: h.source,
     score: h.score,
+    // Preserve page for accurate multi-PDF citations in the UI
+    ...(h.page !== undefined ? { page: h.page } : {}),
     excerpt: h.excerpt || h.text.slice(0, 320),
     ...(includeFull ? { text: h.text } : {}),
   }));
@@ -269,7 +271,8 @@ async function handle(
           })),
         );
       }
-      const topK = Math.min(20, Math.max(1, body.top_k || 5));
+      // Higher default k — multi-doc search raises further inside retrieve.ts
+      const topK = body.top_k !== undefined ? Math.min(20, Math.max(1, body.top_k)) : undefined;
       const includeFull = allowFullContext(request, body.include_full_context);
       const t0 = performance.now();
       const outcome: SearchOutcome = await search(question, tenant, topK);
@@ -396,7 +399,7 @@ async function handle(
         );
       }
 
-      const topK = Math.min(20, Math.max(1, body.top_k || 8));
+      const topK = body.top_k !== undefined ? Math.min(20, Math.max(1, body.top_k)) : undefined;
       const t0 = performance.now();
       let outcome = await search(topic, tenant, topK);
       if (!outcome.hits.length && topic.includes(" ")) {

@@ -32,7 +32,11 @@ export class BM25Index {
     this.avgDocLen = totalTerms / Math.max(1, this.termCounts.length);
   }
 
-  search(query: string, topK: number): SearchHit[] {
+  /**
+   * Score every chunk with a positive BM25 contribution.
+   * Callers use a large fetch_k then diversity-select (MMR / multi-doc).
+   */
+  scoreAll(query: string): SearchHit[] {
     const queryTerms = tokenize(query);
     if (!queryTerms.length || !this.chunks.length) return [];
 
@@ -51,7 +55,11 @@ export class BM25Index {
       });
     }
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, topK);
+    return scored;
+  }
+
+  search(query: string, topK: number): SearchHit[] {
+    return this.scoreAll(query).slice(0, topK);
   }
 
   private score(queryTerms: string[], counts: Map<string, number>): number {

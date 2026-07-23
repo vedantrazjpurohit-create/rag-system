@@ -2,6 +2,11 @@ import { createHash, randomUUID } from "crypto";
 
 import { BM25Index } from "./bm25";
 import { normalizeEngineeringText } from "./normalize";
+import {
+  RETRIEVAL,
+  isMultiDocumentQuery,
+  selectDiverseContexts,
+} from "./retrieve";
 import type { Chunk, DocumentInfo, SearchHit } from "./types";
 
 type GlobalStore = {
@@ -176,25 +181,41 @@ export type SearchOutcome = {
   /** True when nothing scored; optional broad passages are not answer-grade matches. */
   weak_match: boolean;
   broad_passages: SearchHit[];
+  multi_doc?: boolean;
+  fetch_k?: number;
 };
 
-/** BM25 + keyword contains. No “dump first pages” fallback into answer hits. */
+/**
+ * Multi-stage retrieval:
+ *  1) BM25 over all tenant chunks → large candidate pool (fetch_k)
+ *  2) Keyword fallback if BM25 is empty
+ *  3) MMR + per-document quotas so comparison queries span multiple PDFs
+ *
+ * Single-doc questions keep high λ (relevance-first); multi-doc questions
+ * lower λ and seed one/two hits per source before filling.
+ */
 export async function search(
   question: string,
   ownerId: string,
-  topK = 5,
+  topK?: number,
 ): Promise<SearchOutcome> {
   const chunks = tenantChunks(ownerId);
   if (!chunks.length) {
     return { hits: [], weak_match: true, broad_passages: [] };
   }
 
+  const multiDoc = isMultiDocumentQuery(question);
+  const desiredK = topK ?? (multiDoc ? RETRIEVAL.topKMulti : RETRIEVAL.topKSingle);
+  const fetchK = multiDoc ? RETRIEVAL.fetchKMulti : RETRIEVAL.fetchKSingle;
+
   const index = new BM25Index();
   index.indexChunks(chunks);
-  let hits = index.search(question, topK);
 
-  // Keyword contains (helps short queries / weak BM25 scores)
-  if (!hits.length) {
+  // Large candidate pool — pure topK here is what caused single-PDF dominance
+  let candidates = index.scoreAll(question).slice(0, fetchK);
+
+  // Keyword contains fallback (short queries / weak BM25)
+  if (!candidates.length) {
     const terms = (question.toLowerCase().match(/[a-z0-9]{3,}/g) || []).slice(0, 12);
     if (terms.length) {
       const ranked = chunks
@@ -208,18 +229,31 @@ export async function search(
         })
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, topK);
-      hits = ranked.map((x) => toHit(x.chunk, x.score));
+        .slice(0, fetchK);
+      candidates = ranked.map((x) => toHit(x.chunk, x.score));
     }
   }
 
-  if (hits.length) {
-    return { hits, weak_match: false, broad_passages: [] };
+  if (!candidates.length) {
+    const broad_passages = chunks
+      .slice(0, Math.min(3, desiredK))
+      .map((c, i) => toHit(c, 0.001 / (i + 1)));
+    return { hits: [], weak_match: true, broad_passages, multi_doc: multiDoc, fetch_k: fetchK };
   }
 
-  // Optional broad passages for UI only — not used as confident answer context
-  const broad_passages = chunks.slice(0, Math.min(3, topK)).map((c, i) => toHit(c, 0.001 / (i + 1)));
-  return { hits: [], weak_match: true, broad_passages };
+  const { hits, multiDoc: multi, fetchK: usedFetch } = selectDiverseContexts(
+    candidates,
+    question,
+    desiredK,
+  );
+
+  return {
+    hits,
+    weak_match: false,
+    broad_passages: [],
+    multi_doc: multi,
+    fetch_k: usedFetch,
+  };
 }
 
 export async function stats(ownerId: string) {

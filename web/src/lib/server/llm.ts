@@ -21,10 +21,31 @@ function truncate(text: string, max = 480): string {
   return `${cleaned.slice(0, max).replace(/\s+\S*$/, "")}…`;
 }
 
+function citeSource(h: SearchHit): string {
+  const page = h.page ? `, p.${h.page}` : "";
+  return `${h.source || h.doc_id || "document"}${page}`;
+}
+
 function templateAnswer(hits: SearchHit[], question: string): string {
   if (!hits.length) return REFUSAL;
+
+  const sources = [...new Set(hits.map((h) => h.source || h.doc_id))];
+  // Multi-PDF: surface one short excerpt per document so answers aren't one-file-only
+  if (sources.length > 1) {
+    const byDoc = new Map<string, SearchHit>();
+    for (const h of hits) {
+      const key = h.doc_id || h.source;
+      if (!byDoc.has(key)) byDoc.set(key, h);
+    }
+    const lines = [...byDoc.values()].slice(0, 6).map((h) => {
+      const body = truncate(normalizeEngineeringText(h.text), 220);
+      return `From [${citeSource(h)}]: ${body}`;
+    });
+    return lines.join("\n\n");
+  }
+
   const body = truncate(normalizeEngineeringText(hits[0].text));
-  const source = hits[0].source || hits[0].doc_id || "document";
+  const source = citeSource(hits[0]);
   const define = question.match(/(?:what is|what's|define|explain)\s+(.+?)\??$/i);
   const term = define?.[1]?.trim();
 
@@ -88,16 +109,23 @@ export async function generateAnswer(
   }
 
   if (llmEnabled()) {
-    const snippets = hits.slice(0, 4).map((h, i) => {
+    const sourceCount = new Set(hits.map((h) => h.doc_id || h.source)).size;
+    const snippets = hits.slice(0, 12).map((h, i) => {
       const text = normalizeEngineeringText(h.text).replace(/\s+/g, " ").slice(0, 400);
-      return `[${i + 1}] source=${h.source}\n<<<CONTEXT>>>\n${text}\n<<<END CONTEXT>>>`;
+      const page = h.page ? ` page=${h.page}` : "";
+      return `[${i + 1}] source=${h.source}${page} doc_id=${h.doc_id}\n<<<CONTEXT>>>\n${text}\n<<<END CONTEXT>>>`;
     });
+    const multiHint =
+      sourceCount > 1
+        ? " Snippets come from MULTIPLE PDFs — synthesize across them and cite each source by filename (and page when given). Do not answer from only one file if others are relevant."
+        : "";
     const system =
-      "You are a careful RAG assistant. Answer ONLY using the snippets. Cite like [1]. " +
+      "You are a careful RAG assistant. Answer ONLY using the snippets. Cite like [1] or by source filename. " +
       "If context is insufficient, say you cannot answer from the documents. " +
-      "Rewrite garbled PDF formulas in plain engineering notation.";
-    const user = `Question:\n${question}\n\nSnippets:\n${snippets.join("\n\n")}`;
-    const answer = await chatCompletion(system, user, 400);
+      "Rewrite garbled PDF formulas in plain engineering notation." +
+      multiHint;
+    const user = `Question:\n${question}\n\nSnippets (${sourceCount} document(s)):\n${snippets.join("\n\n")}`;
+    const answer = await chatCompletion(system, user, sourceCount > 1 ? 600 : 400);
     if (answer) return { answer, mode: "llm" };
   }
 

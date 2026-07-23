@@ -20,7 +20,10 @@ export function IndexContextCard({ context, rank, active, onSelect }: IndexConte
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-[var(--sample-accent)]">[{rank}]</span>
-        <span className="truncate text-xs text-[var(--sample-dim)]">{context.source}</span>
+        <span className="truncate text-xs text-[var(--sample-dim)]">
+          {context.source}
+          {context.page != null ? ` · p.${context.page}` : ""}
+        </span>
       </div>
       <p className="text-xs text-[var(--sample-dim)]">score {context.score.toFixed(3)}</p>
       <p className="mt-2 text-sm leading-relaxed text-[var(--sample-muted)]">

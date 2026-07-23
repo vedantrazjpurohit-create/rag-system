@@ -14,6 +14,8 @@ export interface SearchHit {
   text: string;
   score: number;
   excerpt?: string;
+  /** Page number when known (e.g. OCR markers) — preserved for citations */
+  page?: number;
 }
 
 export interface DocumentInfo {

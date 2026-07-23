@@ -21,6 +21,8 @@ export interface RetrievedContext {
   score: number;
   excerpt?: string;
   text?: string;
+  /** Page number when known — for multi-PDF citations */
+  page?: number;
 }
 
 export interface QueryResponse {
