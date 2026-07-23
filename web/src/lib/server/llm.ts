@@ -151,22 +151,21 @@ function templateAnswer(hits: SearchHit[], question: string): string {
       return prose;
     });
     answerBody =
-      `Based on your uploaded materials, here is a combined take:\n\n` +
-      pieces.map((p, i) => `${i + 1}. ${p}`).join("\n\n") +
-      `\n\nThese points come from different PDFs in your library. For a fuller tutor-style explanation, enable Grok (XAI_API_KEY) on the server.`;
+      `Based on your uploaded materials:\n\n` +
+      pieces.map((p, i) => `${i + 1}. ${p}`).join("\n\n");
     keyPoints = pieces.slice(0, 4).map((p) => truncate(p, 140));
   } else {
     const body = normalizeEngineeringText(hits[0].text);
     const prose =
       bestProseSentence(body, term || null) || truncate(body, 420);
     if (isFormulaHeavy(body) && !bestProseSentence(body, term || null)) {
-      answerBody = `Your notes contain relevant material in **${citeLabel(hits[0])}**, but formulas did not extract cleanly as plain text. Re-upload a clearer PDF or enable the LLM for a better rewrite.`;
+      answerBody = `Your notes contain relevant material in **${citeLabel(hits[0])}**, but formulas did not extract cleanly as plain text. Try re-uploading a clearer PDF.`;
       keyPoints = ["Formula text may be garbled in the PDF extract.", `See source: ${citeLabel(hits[0])}`];
     } else if (term) {
-      answerBody = `**${term[0].toUpperCase()}${term.slice(1)}**\n\n${prose}\n\nThis is drawn from your notes. With Grok enabled, answers will be fuller tutor-style explanations rather than short extracts.`;
+      answerBody = `**${term[0].toUpperCase()}${term.slice(1)}**\n\n${prose}`;
       keyPoints = [truncate(prose, 160)];
     } else {
-      answerBody = `${prose}\n\nThis is the best matching passage from your notes. Enable Grok (XAI_API_KEY) for richer explanations.`;
+      answerBody = prose;
       keyPoints = [truncate(prose, 160)];
     }
   }
@@ -275,7 +274,7 @@ End with a ## Sources section listing filenames and pages when known.`;
   const lines = [
     `## Answer`,
     "",
-    `Study notes on **${topic}** (extract mode — enable Grok for richer tutoring).`,
+    `Study notes on **${topic}**.`,
     "",
     `## Key Points`,
     "",

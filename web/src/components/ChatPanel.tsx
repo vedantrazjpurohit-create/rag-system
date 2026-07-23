@@ -25,7 +25,7 @@ const DEFAULT_MESSAGES: ChatMessage[] = [
   {
     role: "assistant",
     content:
-      "Load the sample corpus or upload your own docs, then ask a question. Answers stream in when Grok is enabled.",
+      "Load the sample corpus or upload your own docs, then ask a question.",
   },
 ];
 
@@ -167,8 +167,8 @@ export function ChatPanel({ focusNonce = 0 }: ChatPanelProps) {
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-[10px] text-slate-500">
               {llmEnabled
-                ? "Streaming · Grok (xAI)"
-                : "Template excerpts · set XAI_API_KEY on Render for full answers"}
+                ? "Streaming · Grok"
+                : "Using notes from your library"}
             </span>
             <button
               type="button"
