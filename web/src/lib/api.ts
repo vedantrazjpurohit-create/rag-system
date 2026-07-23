@@ -124,9 +124,10 @@ export async function ingestFile(file: File): Promise<IngestResponse> {
   if (file.size <= 0) {
     throw new Error("File is empty.");
   }
-  // Vercel serverless request body limit is ~4.5MB on Hobby.
-  if (file.size > 4.5 * 1024 * 1024) {
-    throw new Error("File is too large for upload through Vercel (max ~4.5MB). Use a smaller PDF.");
+  // Allow large lecture notes (must stay under platform body limits)
+  const maxBytes = 50 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    throw new Error("File is too large (max 50MB). Split the PDF or compress it.");
   }
   const form = new FormData();
   form.append("file", file, file.name);

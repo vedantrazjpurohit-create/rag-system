@@ -1,10 +1,11 @@
 import { normalizeEngineeringText } from "./normalize";
 
-const MAX_CHARS = Number(process.env.MAX_EXTRACTED_CHARS || 500_000);
-const MAX_PDF_PAGES = Number(process.env.MAX_PDF_PAGES || 80);
-const MAX_OCR_PAGES = Number(process.env.MAX_OCR_PAGES || 12);
-const PDF_TIMEOUT_MS = Number(process.env.PDF_PARSE_TIMEOUT_MS || 50_000);
-const MAX_PDF_BYTES = Number(process.env.MAX_PDF_BYTES || 4.5 * 1024 * 1024);
+// Defaults sized for long course notes (hundreds of pages).
+const MAX_CHARS = Number(process.env.MAX_EXTRACTED_CHARS || 5_000_000);
+const MAX_PDF_PAGES = Number(process.env.MAX_PDF_PAGES || 500);
+const MAX_OCR_PAGES = Number(process.env.MAX_OCR_PAGES || 500);
+const PDF_TIMEOUT_MS = Number(process.env.PDF_PARSE_TIMEOUT_MS || 280_000);
+const MAX_PDF_BYTES = Number(process.env.MAX_PDF_BYTES || 50 * 1024 * 1024);
 /** Below this, treat as image/scanned PDF and run OCR. */
 const MIN_TEXT_CHARS = Number(process.env.MIN_PDF_TEXT_CHARS || 40);
 
@@ -136,8 +137,9 @@ async function ocrPdfPages(
   try {
     for (let page = 1; page <= limit; page++) {
       try {
+        // scale 1.5 keeps OCR usable on long notes without blowing memory/time
         const image = await renderPageAsImage(pdf, page, {
-          scale: 2,
+          scale: pageCount > 100 ? 1.25 : 1.5,
           // Dynamic require so Turbopack does not inline the native binding
           canvasImport: async () => {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
