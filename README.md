@@ -78,7 +78,10 @@ The production app is a **single Next.js project** on Vercel. Upload, search, no
 
 | Key | Required? | Purpose |
 |-----|-----------|---------|
-| `XAI_API_KEY` | Optional | Grok answers from [console.x.ai](https://console.x.ai) |
+| `GROQ_API_KEY` | **Recommended free** | Free tutor answers — [console.groq.com](https://console.groq.com) |
+| `GROQ_MODEL` | Optional | Default `llama-3.3-70b-versatile` |
+| `OPENROUTER_API_KEY` | Optional free | [openrouter.ai](https://openrouter.ai) free models |
+| `XAI_API_KEY` | Optional paid | Grok — [console.x.ai](https://console.x.ai) |
 | `XAI_MODEL` | Optional | Default `grok-4.5` |
 | `RAG_ADMIN_KEY` | Optional | Set **only if** you need admin/eval routes live (`/eval`, `/demo/seed`). Leave unset on a public demo — those routes stay **safely disabled** (403). |
 | `RAG_API_KEY` | Optional | Shared secret for API callers |

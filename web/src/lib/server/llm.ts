@@ -7,12 +7,84 @@ const REFUSAL =
 const WEAK_MATCH =
   "No strong match for that question in your uploaded files. Try different keywords, or open a broader passage from the optional suggestions if shown.";
 
+type LlmProvider = {
+  name: string;
+  key: string;
+  baseUrl: string;
+  model: string;
+};
+
+/**
+ * Free / cheap OpenAI-compatible providers (first match wins):
+ * 1) Explicit LLM_*  2) Groq free tier  3) OpenRouter free models  4) xAI Grok (paid)
+ * 5) OpenAI
+ */
+export function resolveLlmProvider(): LlmProvider | null {
+  const genericKey = process.env.LLM_API_KEY?.trim();
+  if (genericKey) {
+    return {
+      name: "custom",
+      key: genericKey,
+      baseUrl: (process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1").replace(/\/+$/, ""),
+      model: process.env.LLM_MODEL || "llama-3.3-70b-versatile",
+    };
+  }
+
+  const groq = process.env.GROQ_API_KEY?.trim();
+  if (groq) {
+    return {
+      name: "groq",
+      key: groq,
+      baseUrl: "https://api.groq.com/openai/v1",
+      // Free-tier friendly default (strong + fast)
+      model: process.env.GROQ_MODEL || process.env.LLM_MODEL || "llama-3.3-70b-versatile",
+    };
+  }
+
+  const openrouter = process.env.OPENROUTER_API_KEY?.trim();
+  if (openrouter) {
+    return {
+      name: "openrouter",
+      key: openrouter,
+      baseUrl: "https://openrouter.ai/api/v1",
+      // Free models rotate; override with LLM_MODEL if needed
+      model: process.env.LLM_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+    };
+  }
+
+  const xai = process.env.XAI_API_KEY?.trim();
+  if (xai) {
+    return {
+      name: "xai",
+      key: xai,
+      baseUrl: (process.env.XAI_BASE_URL || "https://api.x.ai/v1").replace(/\/+$/, ""),
+      model: process.env.XAI_MODEL || process.env.LLM_MODEL || "grok-4.5",
+    };
+  }
+
+  const openai = process.env.OPENAI_API_KEY?.trim();
+  if (openai) {
+    return {
+      name: "openai",
+      key: openai,
+      baseUrl: (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, ""),
+      model: process.env.OPENAI_MODEL || process.env.LLM_MODEL || "gpt-4o-mini",
+    };
+  }
+
+  return null;
+}
+
 export function llmEnabled(): boolean {
-  return Boolean(process.env.XAI_API_KEY?.trim());
+  return resolveLlmProvider() !== null;
 }
 
 export function llmModel(): string | null {
-  return llmEnabled() ? process.env.XAI_MODEL || "grok-4.5" : null;
+  return resolveLlmProvider()?.model ?? null;
+}
+
+export function llmProviderName(): string | null {
+  return resolveLlmProvider()?.name ?? null;
 }
 
 function truncate(text: string, max = 480): string {
@@ -190,19 +262,25 @@ async function chatCompletion(
   maxTokens = 900,
   temperature = 0.35,
 ): Promise<string | null> {
-  const key = process.env.XAI_API_KEY?.trim();
-  if (!key) return null;
-  const base = process.env.XAI_BASE_URL || "https://api.x.ai/v1";
-  const model = process.env.XAI_MODEL || "grok-4.5";
+  const provider = resolveLlmProvider();
+  if (!provider) return null;
+
   try {
-    const response = await fetch(`${base}/chat/completions`, {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${provider.key}`,
+      "Content-Type": "application/json",
+    };
+    // OpenRouter likes these optional headers for free-tier routing
+    if (provider.name === "openrouter") {
+      headers["HTTP-Referer"] = process.env.FRONTEND_URL || "https://ragved.local";
+      headers["X-Title"] = "RAGVED";
+    }
+
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
-        model,
+        model: provider.model,
         temperature,
         max_tokens: maxTokens,
         messages: [
@@ -211,14 +289,18 @@ async function chatCompletion(
         ],
       }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.error(`LLM ${provider.name} error ${response.status}:`, detail.slice(0, 300));
+      return null;
+    }
     const data = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
     };
     const content = data.choices?.[0]?.message?.content?.trim();
-    // Do not aggressively normalize the whole markdown answer (would smash structure).
     return content || null;
-  } catch {
+  } catch (err) {
+    console.error("LLM request failed:", err);
     return null;
   }
 }

@@ -9,6 +9,7 @@ import {
   generateWebSummary,
   llmEnabled,
   llmModel,
+  llmProviderName,
 } from "@/lib/server/llm";
 import {
   deleteDocument,
@@ -158,6 +159,7 @@ async function handle(
         llm_enabled: llmEnabled(),
         web_search_enabled: process.env.WEB_SEARCH_ENABLED !== "false",
         llm_model: llmModel(),
+        llm_provider: llmProviderName(),
         strategies: ["bm25", "router", "vector", "hybrid"],
         persistence_enabled: true,
         embedder_backend: "none",
