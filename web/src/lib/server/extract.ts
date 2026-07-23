@@ -5,7 +5,7 @@ const MAX_CHARS = Number(process.env.MAX_EXTRACTED_CHARS || 5_000_000);
 const MAX_PDF_PAGES = Number(process.env.MAX_PDF_PAGES || 500);
 const MAX_OCR_PAGES = Number(process.env.MAX_OCR_PAGES || 500);
 const PDF_TIMEOUT_MS = Number(process.env.PDF_PARSE_TIMEOUT_MS || 280_000);
-const MAX_PDF_BYTES = Number(process.env.MAX_PDF_BYTES || 50 * 1024 * 1024);
+const MAX_PDF_BYTES = Number(process.env.MAX_PDF_BYTES || 150 * 1024 * 1024);
 /** Below this, treat as image/scanned PDF and run OCR. */
 const MIN_TEXT_CHARS = Number(process.env.MIN_PDF_TEXT_CHARS || 40);
 

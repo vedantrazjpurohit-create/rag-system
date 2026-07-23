@@ -125,9 +125,9 @@ export async function ingestFile(file: File): Promise<IngestResponse> {
     throw new Error("File is empty.");
   }
   // Allow large lecture notes (must stay under platform body limits)
-  const maxBytes = 50 * 1024 * 1024;
+  const maxBytes = 150 * 1024 * 1024;
   if (file.size > maxBytes) {
-    throw new Error("File is too large (max 50MB). Split the PDF or compress it.");
+    throw new Error("File is too large (max 150MB). Split the PDF or compress it.");
   }
   const form = new FormData();
   form.append("file", file, file.name);

@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   // Native / wasm packages must not be bundled into the route chunk
   serverExternalPackages: ["@napi-rs/canvas", "tesseract.js", "sharp"],
   experimental: {
-    proxyClientMaxBodySize: "50mb",
+    proxyClientMaxBodySize: "150mb",
   },
 };
 

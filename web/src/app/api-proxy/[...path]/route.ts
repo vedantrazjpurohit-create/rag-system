@@ -28,7 +28,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_BYTES || 50 * 1024 * 1024);
+const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_BYTES || 150 * 1024 * 1024);
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
