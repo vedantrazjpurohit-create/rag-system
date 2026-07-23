@@ -180,7 +180,7 @@ export function IndexLearn({ documents }: IndexLearnProps) {
           setError(
             documents.length === 0
               ? "No PDFs in your library yet — upload on the Workspace tab first, then come back to Learn."
-              : "No passages matched this topic in your PDFs. Try a shorter keyword (e.g. “force”), or re-upload the file.",
+              : "No passages matched this topic in your PDFs. Try a shorter keyword, or re-upload the file.",
           );
         }
       }
@@ -355,7 +355,7 @@ export function IndexLearn({ documents }: IndexLearnProps) {
               <p className="text-sm text-[var(--sample-muted)]">
                 {documents.length === 0 && mode !== "web"
                   ? "Upload PDFs on the Workspace tab first, then generate notes, definitions, or flashcards here."
-                  : "Enter a topic below — e.g. “force”, “equilibrium”, or “PID controller” — and press Go."}
+                  : "Enter your topic below and press Go."}
               </p>
             )}
           </div>
@@ -371,15 +371,7 @@ export function IndexLearn({ documents }: IndexLearnProps) {
               <input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={
-                  mode === "define"
-                    ? "Term to define — e.g. resultant force"
-                    : mode === "flashcards"
-                      ? "Topic for flashcards — e.g. control systems"
-                      : mode === "web"
-                        ? "Search the web — e.g. force physics"
-                        : "Topic for notes — e.g. force or chapter 3 moments"
-                }
+                placeholder="Enter your topic below"
                 className="sample-input min-w-0 flex-1"
               />
               <button

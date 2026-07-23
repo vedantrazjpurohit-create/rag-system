@@ -9,16 +9,14 @@ import { EngineeringText, normalizeForDisplay } from "./EngineeringText";
 import { IndexContextCard } from "./IndexContextCard";
 import { IndexUpload } from "./IndexUpload";
 
-const ASK_PLACEHOLDER =
-  "Ask in plain language — e.g. what is resultant force-couple, define equilibrium, summarize chapter 3…";
+const ASK_PLACEHOLDER = "Ask a question about your notes…";
 
 const CHAT_STORAGE_KEY = "index-chat-v1";
 
 const DEFAULT_MESSAGES: ChatMessage[] = [
   {
     role: "assistant",
-    content:
-      "Hey — upload your PDFs on the left, then just ask. Definitions, formulas, summaries — answers stream in when Grok is enabled.",
+    content: "Hey — upload your PDFs on the left, then just ask.",
   },
 ];
 

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-export type SampleTab = "workspace" | "learn" | "library" | "compare" | "review";
+export type SampleTab = "workspace" | "learn" | "library" | "compare";
 
 interface SampleHeaderProps {
   active: SampleTab;
@@ -14,7 +14,6 @@ const TABS: { id: SampleTab; label: string }[] = [
   { id: "learn", label: "Learn" },
   { id: "library", label: "Files" },
   { id: "compare", label: "Compare" },
-  { id: "review", label: "Check" },
 ];
 
 export function SampleHeader({ active, onChange }: SampleHeaderProps) {

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { IndexCompare } from "@/components/index/IndexCompare";
 import { IndexLearn } from "@/components/index/IndexLearn";
 import { IndexLibrary } from "@/components/index/IndexLibrary";
-import { IndexReview } from "@/components/index/IndexReview";
 import { IndexWorkspace } from "@/components/index/IndexWorkspace";
 import { SampleHeader, type SampleTab } from "@/components/sample/SampleHeader";
 import { SampleHero } from "@/components/sample/SampleHero";
@@ -116,7 +115,6 @@ export default function Home() {
           />
         )}
         {tab === "compare" && <IndexCompare documents={documents} />}
-        {tab === "review" && <IndexReview documentCount={documents.length} />}
       </main>
 
       <footer className="mx-auto max-w-5xl px-5 pb-10 pt-2">
