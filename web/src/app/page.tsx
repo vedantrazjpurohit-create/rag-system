@@ -8,7 +8,7 @@ import { IndexLibrary } from "@/components/index/IndexLibrary";
 import { IndexWorkspace } from "@/components/index/IndexWorkspace";
 import { SampleHeader, type SampleTab } from "@/components/sample/SampleHeader";
 import { SampleHero } from "@/components/sample/SampleHero";
-import { deleteDocument, getHealth, listDocuments, syncLocalCorpus } from "@/lib/api";
+import { deleteDocument, getHealth, listLibraryDocuments, syncLocalCorpus } from "@/lib/api";
 import type { DocumentInfo } from "@/lib/types";
 
 export default function Home() {
@@ -26,21 +26,14 @@ export default function Home() {
     setDocsLoading(true);
     setDocsError(null);
     try {
-      // Re-push browser-cached PDFs so Learn/chat hit a warm index on this instance
-      const synced = await syncLocalCorpus();
-      if (synced.documents?.length) {
-        setDocuments(synced.documents);
-      } else {
-        const response = await listDocuments();
-        setDocuments(response.documents ?? []);
-      }
+      // UI list from browser cache (stable ids). Warm server in background.
+      const library = await listLibraryDocuments();
+      setDocuments(library);
+      void syncLocalCorpus().catch(() => {
+        /* optional warm-up */
+      });
     } catch (err) {
-      try {
-        const response = await listDocuments();
-        setDocuments(response.documents ?? []);
-      } catch {
-        setDocsError(err instanceof Error ? err.message : "Could not load your library");
-      }
+      setDocsError(err instanceof Error ? err.message : "Could not load your library");
     } finally {
       setDocsLoading(false);
     }
@@ -60,16 +53,21 @@ export default function Home() {
       });
   }, [refreshDocuments]);
 
-  async function handleDelete(docId: string) {
-    // Optimistic UI so Remove feels instant even if the server instance never had the file
-    setDocuments((prev) => prev.filter((d) => d.doc_id !== docId));
+  async function handleDelete(docId: string, source?: string) {
+    const target = documents.find((d) => d.doc_id === docId);
+    const fileName = source || target?.source;
     setDocsError(null);
+    // Drop from Study + Files immediately (shared state)
+    setDocuments((prev) =>
+      prev.filter((d) => d.doc_id !== docId && (!fileName || d.source !== fileName)),
+    );
     try {
-      await deleteDocument(docId);
-      await refreshDocuments();
+      await deleteDocument(docId, fileName);
+      // Re-read IndexedDB only — never rehydrate from server after delete
+      setDocuments(await listLibraryDocuments());
     } catch (err) {
       setDocsError(err instanceof Error ? err.message : "Could not remove file");
-      await refreshDocuments();
+      setDocuments(await listLibraryDocuments());
     }
   }
 
@@ -106,7 +104,7 @@ export default function Home() {
             <IndexWorkspace
               documents={documents}
               onUploaded={refreshDocuments}
-              onRemoveDocument={handleDelete}
+              onRemoveDocument={(id, source) => void handleDelete(id, source)}
             />
           </div>
         )}
@@ -115,7 +113,7 @@ export default function Home() {
           <IndexLibrary
             documents={documents}
             loading={docsLoading}
-            onRemoveDocument={handleDelete}
+            onRemoveDocument={(id, source) => void handleDelete(id, source)}
           />
         )}
         {tab === "compare" && <IndexCompare documents={documents} />}

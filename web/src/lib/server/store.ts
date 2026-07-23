@@ -68,6 +68,7 @@ export async function ingestText(
   text: string,
   source: string,
   ownerId: string,
+  preferredDocId?: string,
 ): Promise<{ chunks_indexed: number; doc_id: string; source: string; index_mode: string; text: string }> {
   const store = ensureStore();
   const cleaned = normalizeEngineeringText(text);
@@ -82,7 +83,13 @@ export async function ingestText(
     }
   }
 
-  const docId = docIdForSource(store, source, ownerId);
+  // Prefer client doc_id so UI Remove targets the same id as IndexedDB
+  let docId =
+    preferredDocId && preferredDocId.trim()
+      ? preferredDocId.trim()
+      : docIdForSource(store, source, ownerId);
+  store.sourceDocIds.set(sourceKey(source, ownerId), docId);
+
   for (let idx = 0; idx < pieces.length; idx++) {
     const piece = pieces[idx];
     const id = stableId(ownerId, source, idx, piece);
@@ -125,22 +132,27 @@ export async function listDocuments(ownerId: string): Promise<DocumentInfo[]> {
   return [...grouped.values()].sort((a, b) => a.source.localeCompare(b.source));
 }
 
-export async function deleteDocument(docId: string, ownerId: string): Promise<boolean> {
+export async function deleteDocument(
+  docId: string,
+  ownerId: string,
+  source?: string,
+): Promise<boolean> {
   const store = ensureStore();
   let removed = false;
   for (const [id, chunk] of [...store.chunksById.entries()]) {
-    if (chunk.doc_id === docId && chunk.owner_id === ownerId) {
+    if (chunk.owner_id !== ownerId) continue;
+    if (chunk.doc_id === docId || (source && chunk.source === source)) {
       store.chunksById.delete(id);
       removed = true;
     }
   }
-  if (!removed) return false;
   for (const [key, value] of [...store.sourceDocIds.entries()]) {
-    if (value === docId && key.startsWith(`${ownerId}::`)) {
+    if (!key.startsWith(`${ownerId}::`)) continue;
+    if (value === docId || (source && key === sourceKey(source, ownerId))) {
       store.sourceDocIds.delete(key);
     }
   }
-  return true;
+  return removed;
 }
 
 function tenantChunks(ownerId: string): Chunk[] {
@@ -231,7 +243,7 @@ export async function syncDocuments(
     const text = (doc.text || "").trim();
     const source = (doc.source || "upload").trim();
     if (!text || !source) continue;
-    const result = await ingestText(text, source, ownerId);
+    const result = await ingestText(text, source, ownerId, doc.doc_id);
     if (result.chunks_indexed > 0) synced += 1;
   }
   const docs = await listDocuments(ownerId);

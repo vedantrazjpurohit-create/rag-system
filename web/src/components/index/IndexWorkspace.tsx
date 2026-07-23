@@ -30,7 +30,7 @@ interface ChatMessage {
 interface IndexWorkspaceProps {
   documents: DocumentInfo[];
   onUploaded: () => void;
-  onRemoveDocument: (docId: string) => void;
+  onRemoveDocument: (docId: string, source?: string) => void;
   focusNonce?: number;
 }
 
@@ -198,7 +198,11 @@ export function IndexWorkspace({
                     </p>
                     <button
                       type="button"
-                      onClick={() => onRemoveDocument(doc.doc_id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRemoveDocument(doc.doc_id, doc.source);
+                      }}
                       aria-label={`Remove ${doc.source}`}
                       className="sample-btn sample-btn-ghost shrink-0 text-xs"
                     >

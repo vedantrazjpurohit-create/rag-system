@@ -198,7 +198,8 @@ async function handle(
       // Tenant-scoped delete of own docs. Idempotent: missing doc is still success.
       const tenant = requireApiAccess(request);
       const docId = decodeURIComponent(path.slice("/documents/".length));
-      await deleteDocument(docId, tenant);
+      const source = request.nextUrl.searchParams.get("source") || undefined;
+      await deleteDocument(docId, tenant, source || undefined);
       return json({ deleted: docId, stats: await stats(tenant) });
     }
 

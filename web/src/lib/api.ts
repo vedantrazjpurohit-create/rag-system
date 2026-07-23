@@ -179,26 +179,44 @@ async function localDocumentsPayload(): Promise<{ source: string; text: string; 
   }
 }
 
-/** Optional warm-up; library list may still be empty on a cold instance until query carries docs. */
+/**
+ * Library list = browser IndexedDB only.
+ * Never fall back to the server list — after Remove, local is empty and remote
+ * may still have the file on another Vercel instance (which re-showed deleted docs).
+ */
+export async function listLibraryDocuments(): Promise<DocumentInfo[]> {
+  const local = await listLocalDocuments();
+  return local
+    .map((d) => ({
+      doc_id: d.doc_id,
+      source: d.source,
+      chunk_count: d.chunks_indexed || 1,
+      trust_tier: "trusted" as const,
+    }))
+    .sort((a, b) => a.source.localeCompare(b.source));
+}
+
+/** Optional warm-up of server index; UI list always comes from listLibraryDocuments. */
 export async function syncLocalCorpus(): Promise<{ synced: number; documents: DocumentInfo[] }> {
   const documents = await localDocumentsPayload();
+  const library = await listLibraryDocuments();
   if (!documents.length) {
-    try {
-      const remote = await listDocuments();
-      return { synced: 0, documents: remote.documents ?? [] };
-    } catch {
-      return { synced: 0, documents: [] };
-    }
+    return { synced: 0, documents: library };
   }
-  const result = await request<{ synced: number; documents: DocumentInfo[] }>("/sync", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ documents }),
-  });
-  return {
-    synced: result.synced ?? 0,
-    documents: result.documents ?? [],
-  };
+  try {
+    const result = await request<{ synced: number; documents: DocumentInfo[] }>("/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documents }),
+    });
+    // Prefer local ids so Remove keeps matching IndexedDB keys
+    return {
+      synced: result.synced ?? 0,
+      documents: library.length ? library : (result.documents ?? []),
+    };
+  } catch {
+    return { synced: 0, documents: library };
+  }
 }
 
 export async function queryDocuments(
@@ -214,23 +232,22 @@ export async function queryDocuments(
   });
 }
 
-export async function deleteDocument(docId: string): Promise<{ deleted: string; stats?: Stats }> {
-  // Always drop browser cache first — otherwise syncLocalCorpus re-uploads the file.
-  await removeLocalDocument(docId);
+export async function deleteDocument(
+  docId: string,
+  source?: string,
+): Promise<{ deleted: string; local_removed: number }> {
+  // Browser cache is the library source of truth — must clear by id and filename.
+  const local_removed = await removeLocalDocument(docId, source);
 
+  // Best-effort server cleanup (may no-op on a cold instance)
+  const qs = source ? `?source=${encodeURIComponent(source)}` : "";
   try {
-    return await request<{ deleted: string; stats: Stats }>(
-      `/documents/${encodeURIComponent(docId)}`,
-      { method: "DELETE" },
-    );
-  } catch (err) {
-    // Server instance may never have had this doc (Vercel hop) — local remove is enough.
-    const message = err instanceof Error ? err.message : String(err);
-    if (/404|not found/i.test(message)) {
-      return { deleted: docId };
-    }
-    throw err;
+    await request(`/documents/${encodeURIComponent(docId)}${qs}`, { method: "DELETE" });
+  } catch {
+    /* ignore — UI depends only on local library */
   }
+
+  return { deleted: docId, local_removed };
 }
 
 export function getAdversarialSummary(): Promise<AdversarialComparison> {

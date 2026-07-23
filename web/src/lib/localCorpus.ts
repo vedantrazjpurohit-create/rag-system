@@ -33,18 +33,39 @@ function idbRequest<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-export async function saveLocalDocument(doc: Omit<LocalDocument, "tenant_id" | "updated_at">): Promise<void> {
+function waitTx(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("IndexedDB transaction failed"));
+    tx.onabort = () => reject(tx.error || new Error("IndexedDB transaction aborted"));
+  });
+}
+
+export async function saveLocalDocument(
+  doc: Omit<LocalDocument, "tenant_id" | "updated_at">,
+): Promise<void> {
   if (typeof indexedDB === "undefined") return;
   const tenant_id = getTenantId();
   const db = await openDb();
   const tx = db.transaction(STORE, "readwrite");
   const store = tx.objectStore(STORE);
-  const record: LocalDocument = {
+  // Drop any older row with the same filename for this tenant (prevents id drift)
+  const all = (await idbRequest(store.getAll())) as LocalDocument[];
+  for (const existing of all) {
+    if (
+      existing.tenant_id === tenant_id &&
+      existing.source === doc.source &&
+      existing.doc_id !== doc.doc_id
+    ) {
+      store.delete(existing.doc_id);
+    }
+  }
+  store.put({
     ...doc,
     tenant_id,
     updated_at: new Date().toISOString(),
-  };
-  await idbRequest(store.put(record));
+  } satisfies LocalDocument);
+  await waitTx(tx);
   db.close();
 }
 
@@ -62,34 +83,44 @@ export async function listLocalDocuments(): Promise<LocalDocument[]> {
   }
 }
 
-export async function removeLocalDocument(docId: string): Promise<void> {
-  if (typeof indexedDB === "undefined") return;
+/** Remove by doc_id and/or filename so Remove always clears the library. */
+export async function removeLocalDocument(docId: string, source?: string): Promise<number> {
+  if (typeof indexedDB === "undefined") return 0;
   try {
+    const tenant_id = getTenantId();
     const db = await openDb();
     const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).delete(docId);
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error || new Error("IndexedDB delete failed"));
-      tx.onabort = () => reject(tx.error || new Error("IndexedDB delete aborted"));
-    });
+    const store = tx.objectStore(STORE);
+    const all = (await idbRequest(store.getAll())) as LocalDocument[];
+    let removed = 0;
+    for (const doc of all) {
+      if (doc.tenant_id !== tenant_id) continue;
+      const idMatch = doc.doc_id === docId;
+      const sourceMatch = source ? doc.source === source : false;
+      if (idMatch || sourceMatch) {
+        store.delete(doc.doc_id);
+        removed += 1;
+      }
+    }
+    await waitTx(tx);
     db.close();
+    return removed;
   } catch {
-    /* ignore */
+    return 0;
   }
 }
 
 export async function clearLocalDocuments(): Promise<void> {
   if (typeof indexedDB === "undefined") return;
   try {
-    const tenant_id = getTenantId();
     const docs = await listLocalDocuments();
     const db = await openDb();
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
     for (const doc of docs) {
-      if (doc.tenant_id === tenant_id) await idbRequest(store.delete(doc.doc_id));
+      store.delete(doc.doc_id);
     }
+    await waitTx(tx);
     db.close();
   } catch {
     /* ignore */
