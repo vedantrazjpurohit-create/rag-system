@@ -71,7 +71,7 @@ The production app is a **single Next.js project** on Vercel. Upload, search, no
 ### Deploy
 
 1. [vercel.com](https://vercel.com) → **Add New** → **Project**
-2. Import `vedantrajpurohit/rag-system`
+2. Import `vedant-rajpurohit/rag-system`
 3. **Root Directory** = **`web`**
 4. Framework = **Next.js**
 5. Environment variables:
@@ -249,9 +249,9 @@ Full write-up (methodology, errors we hit, remaining gaps): **[eval/ADVERSARIAL_
 | `eval/data/raw_adversarial/` | Corpus + poison doc for stress tests |
 | `eval/src/retrieval/guard.py` | Trust tiers + OOD/poison guardrails |
 
-Merged from [rag-api](https://github.com/vedantrajpurohit/rag-api) and [rag-eval-bench](https://github.com/vedantrajpurohit/rag-eval-bench).
+Merged from [rag-api](https://github.com/vedant-rajpurohit/rag-api) and [rag-eval-bench](https://github.com/vedant-rajpurohit/rag-eval-bench).
 
-**Author:** [vedantrajpurohit](https://github.com/vedantrajpurohit)
+**Author:** [vedant-rajpurohit](https://github.com/vedant-rajpurohit)
 
 **Stack:** Python 3.11+ · FastAPI · ChromaDB · sentence-transformers · pytest
 

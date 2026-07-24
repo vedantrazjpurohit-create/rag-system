@@ -123,12 +123,12 @@ export default function Home() {
         <p className="text-center text-sm text-[var(--sample-dim)]">
           Made for late-night study sessions ·{" "}
           <a
-            href="https://github.com/vedantrajpurohit"
+            href="https://github.com/vedant-rajpurohit"
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-[var(--sample-border)] underline-offset-2 hover:text-[var(--sample-text)]"
           >
-            @vedantrajpurohit
+            @vedant-rajpurohit
           </a>
         </p>
       </footer>
