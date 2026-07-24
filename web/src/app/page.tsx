@@ -120,7 +120,17 @@ export default function Home() {
       </main>
 
       <footer className="mx-auto max-w-5xl px-5 pb-10 pt-2">
-        <p className="text-center text-sm text-[var(--sample-dim)]">Made for late-night study sessions</p>
+        <p className="text-center text-sm text-[var(--sample-dim)]">
+          Made for late-night study sessions ·{" "}
+          <a
+            href="https://github.com/vedantrajpurohit"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-[var(--sample-border)] underline-offset-2 hover:text-[var(--sample-text)]"
+          >
+            @vedantrajpurohit
+          </a>
+        </p>
       </footer>
     </>
   );

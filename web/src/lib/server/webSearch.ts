@@ -9,7 +9,7 @@ export type WebResult = {
 
 const UA =
   process.env.WEB_SEARCH_USER_AGENT ||
-  "ContextIQ/1.0 (study; https://github.com/vedantrazjpurohit-create/rag-system)";
+  "RAGVED/1.0 (study; https://github.com/vedantrajpurohit/rag-system)";
 
 function stripUrls(text: string): string {
   return text.replace(/https?:\/\/\S+|www\.\S+/gi, "").replace(/\s+/g, " ").trim();

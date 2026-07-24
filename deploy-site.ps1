@@ -17,7 +17,7 @@ Write-Host ""
 if (-not $TunnelOnly) {
     Write-Host "PERMANENT SITE (Render — free):" -ForegroundColor Green
     Write-Host "  1. Open https://dashboard.render.com/select-repo?type=blueprint"
-    Write-Host "  2. Connect GitHub repo: vedantrazjpurohit-create/rag-system"
+    Write-Host "  2. Connect GitHub repo: vedantrajpurohit/rag-system"
     Write-Host "  3. Render reads render.yaml and deploys ONE service (API + web)"
     Write-Host "  4. Wait ~10 min for first build (embedder pre-cached)"
     Write-Host "  5. Your URL: https://rag-system.onrender.com (or similar)"

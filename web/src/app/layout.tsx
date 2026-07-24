@@ -29,6 +29,8 @@ export const metadata: Metadata = {
     icon: [{ url: "/logo.png", type: "image/png" }],
     apple: [{ url: "/logo.png", type: "image/png" }],
   },
+  authors: [{ name: "Vedant Raj Purohit", url: "https://github.com/vedantrajpurohit" }],
+  creator: "vedantrajpurohit",
   openGraph: {
     title: "RAGVED — your notes, made searchable",
     description:
